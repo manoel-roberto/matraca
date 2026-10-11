@@ -1,15 +1,19 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 6 concluída (Interface Web Streamlit). Próxima: Fase 7 (Integração, Regressão e Revisão).
-- Último commit/tag: `fase-6-concluida`
-- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP, interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, page_logic.py, isolamento de sessão, sanitização e validação de %PDF-, limite de 50MB, polling de progresso, download de MP3, testes AppTest), 311 testes no total passando.
-- Quebrado/pendente: suíte de integração e regressão de 500 páginas (Fase 7), documentação e entrega final (Fase 8).
+- Fase atual: 7 concluída (Integração, Regressão e Revisão). Próxima: Fase 8 (Documentação e Entrega Final).
+- Último commit/tag: `fase-7-concluida`
+- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP, interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, page_logic.py, isolamento de sessão, sanitização e validação de %PDF-, limite de 50MB, polling de progresso, download de MP3, testes AppTest), teste de 500 páginas (grande_500.pdf), medição real de cobertura com pytest-cov atingindo 91% global (metas de 90% em page_selection/text/chunking e 80% em core superadas), checklist completo de segurança e privacidade aprovado, 311 testes passando e 1 lento validado.
+- Quebrado/pendente: documentação e entrega final (Fase 8).
 - Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-017 registrados).
-- PRÓXIMO PASSO EXATO: Fase 7 — Integração, Regressão e Revisão (teste lento de 500 páginas `grande_500.pdf`, medição de cobertura pytest-cov, checklist de segurança/privacidade, revisão de rastreabilidade).
+- PRÓXIMO PASSO EXATO: Fase 8 — Documentação e Entrega (README.md completo e detalhado com instruções Linux/Windows, ARQUITETURA.md, revisão de CLAUDE.md e simulação de instalação em venv).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 7 — Integração, regressão, revisão (2026-10-11)
+- Concluído: teste lento `test_perf_500p.py` com `grande_500.pdf` (1.26s), relatório de cobertura `pytest-cov` registrando 91% global (100% page_selection, 98% job_service, 91% audio_service, 93%-95% text, 90% chunking), checklist de segurança e privacidade 100% verificado (sem logs de texto, sem eval/exec/shell=True, sanitização estrita, limpeza de temporários).
+- Evidência: `scripts/check.sh` → ruff OK, mypy strict OK (44 arquivos), compileall OK, pytest → `311 passed, 1 skipped, 1 deselected in 5.75s`. `pytest -m slow` → `1 passed in 1.26s`. Cobertura → `91% TOTAL`.
+- Riscos/limitações: nenhuma dependência de rede na suíte automatizada; integridade de isolamento garantida.
 ### Fase 6 — Interface Web com Streamlit (2026-10-11)
 - Concluído: `matraca/web/page_logic.py`, `matraca/web/streamlit_app.py`, `app_web.py`, `.streamlit/config.toml`, ADR-017, testes unitários e AppTest em `tests/unit/test_web_logic.py`.
 - Evidência: `scripts/check.sh` → ruff OK, mypy strict OK (44 arquivos), compileall OK, pytest → `311 passed, 1 skipped in 5.59s`. Execução real do Streamlit testada via uvicorn/http 8502 com sucesso.

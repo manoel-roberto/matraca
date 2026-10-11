@@ -60,7 +60,11 @@ disallow_subclassing_any = false
 
 [tool.coverage.run]
 source = ["matraca"]
-omit = ["matraca/gui/desktop_app.py"]
+omit = [
+    "matraca/gui/desktop_app.py",
+    "matraca/web/streamlit_app.py",
+    "matraca/__main__.py",
+]
 
 [[tool.mypy.overrides]]
 module = ["matraca.pdf.pymupdf_reader"]
