@@ -56,6 +56,28 @@
 - Evidência verificada: 5 testes passando (ver STATUS).
 - Status: aceita
 
+## ADR-008 — Seleção de páginas: ordem, separadores e Unicode
+- Data / Fase: 2026-10-11 / Fase 2
+- Contexto: A.13.1 exige decisões fixas e documentadas.
+- Decisão: resultado **deduplicado e em ordem crescente**; separadores `,` e `;`; traços Unicode (– — ‑ ‐ − ‒) são **aceitos** e normalizados para `-`; zeros à esquerda aceitos (`007` = 7); dígitos não ASCII rejeitados; entrada vazia é erro; "todas" só por `PageSelection.all(total)`; números com mais de 9 dígitos rejeitados antes de qualquer conversão/expansão.
+- Alternativas consideradas: preservar a ordem digitada (contraria A.13.1).
+- Evidência verificada: 49 testes em `tests/unit/test_page_selection.py`.
+- Status: aceita
+
+## ADR-009 — Extração: ruído por múltiplos sinais, limiar 40% e padrões inferidos de Concursos
+- Data / Fase: 2026-10-11 / Fase 2
+- Contexto: A.13.2. Nenhum PDF real foi fornecido (Fase 0).
+- Decisão: um bloco só é descartado com ≥ 2 sinais (`zona`, `repeticao`, `numeracao`, `rotacionado`, `claro`, `padrao`) ou numeração isolada na margem. Limiar de repetição padrão **40%** das páginas amostradas (mínimo 2 páginas), amostra de até 40 páginas distribuídas **entre as selecionadas**. Faixas: 10% topo/rodapé. "Claro" = alpha < 128 ou luminância em [0,75; 0,98) (branco puro é texto sobre faixa escura). Padrões de licenciamento/URL/bancas ficam em `matraca/extractors/concursos_patterns.toml` (**inferidos, não validados com PDFs reais**) e podem ser estendidos por `ExtractionConfig.extra_noise_patterns`. Formato `(BANCA/ANO)` só é reescrito para "Questão da banca X, de AAAA." se a sigla estiver na lista configurada.
+- Alternativas consideradas: remover por posição (rejeitada: remove notas de rodapé legítimas).
+- Evidência verificada: teste negativo com 4 notas de rodapé jurídicas na margem inferior (`test_nota_de_rodape_juridica_nao_e_removida`) e testes unitários de sinais isolados.
+- Consequências / riscos: com 1 única página selecionada não há perfil de repetição (só numeração/rotação+claro/padrão funcionam). Padrões reais do Estratégia Concursos precisam de validação com PDFs reais.
+- Status: aceita
+
+## ADR-010 — API do PyMuPDF 1.28.2 verificada na instalação real
+- Data / Fase: 2026-10-11 / Fase 2
+- Evidência verificada (execução real): `pymupdf.open(path)` lança `FileDataError` (conteúdo inválido), `EmptyFileError` (0 byte) e `FileNotFoundError`; `doc.needs_pass` indica senha; `page.get_text("dict", flags=...)` devolve `blocks` (tipo 0 = texto com `lines`/`spans`: `dir`, `bbox`, `size`, `color`, `alpha`, `flags`; tipo 1 = imagem); `page.get_image_info()` dá bbox de imagens; `page.find_tables()` existe (`.tables[i].bbox`). Flag usada: `TEXT_MEDIABOX_CLIP` (sem preservar ligaduras/espaços repetidos). Ordem nativa dos blocos é a do fluxo de conteúdo; ordenamos por colunas em `extractors/layout.py`. `pymupdf.TOOLS.mupdf_display_errors(False)` silencia avisos do MuPDF no stderr (efeito global restrito ao módulo `pdf/pymupdf_reader.py`).
+- Status: aceita
+
 ## Decisões a tomar nas fases seguintes
 - ADR: ordem das páginas — crescente e deduplicada (Fase 2; fixa pelo prompt A.13.1).
 - ADR: limiar de repetição de ruído (padrão 40%) (Fase 2).

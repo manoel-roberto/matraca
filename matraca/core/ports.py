@@ -43,8 +43,8 @@ class PDFReader(Protocol):
         """Metadados seguros (título, autor...), sem dados pessoais sensíveis."""
         ...
 
-    def read_page(self, number: int) -> RawPage:
-        """Lê uma página (1-based) sob demanda."""
+    def read_page(self, number: int, *, with_tables: bool = False) -> RawPage:
+        """Lê uma página (1-based) sob demanda; detecta tabelas apenas se `with_tables`."""
         ...
 
 

@@ -92,6 +92,7 @@ class RawLine:
     direction: tuple[float, float] = (1.0, 0.0)
     font_size: float = 0.0
     color: int = 0
+    alpha: int = 255
     bold: bool = False
 
 

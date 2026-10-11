@@ -1,15 +1,20 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 1 concluída (fundação e contratos). Próxima: Fase 2.
-- Último commit/tag: `fase-1-concluida`
-- Funciona (verificado por teste): modelos, exceções, progresso/cancelamento, `utils/paths`, `utils/logging_config`, fronteiras de dependência (AST). 42 testes.
-- Quebrado/pendente: extração, normalização, áudio, UIs (fases 2-6).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (fim).
-- PRÓXIMO PASSO EXATO: Fase 2 — `core/page_selection.py` (≥ 25 casos), `PyMuPDFReader`, `pdf_service`, estratégias Padrão/Concursos, fixtures sintéticas em `scripts/make_fixtures.py`.
+- Fase atual: 2 concluída (seleção de páginas e extração). Próxima: Fase 3.
+- Último commit/tag: `fase-2-concluida`
+- Funciona (verificado por teste): modelos, exceções, progresso/cancelamento, utils/paths, seleção de páginas (49 testes), PyMuPDFReader, PDFService, estratégias Default e Concursos com TOML configurável, remoção de ruído por múltiplos sinais, ordem de leitura em colunas, testes de integração sintéticos (143 testes no total).
+- Quebrado/pendente: normalização (Fase 3), áudio (Fase 4), UIs (Fases 5 e 6).
+- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-008 a ADR-010 registrados).
+- PRÓXIMO PASSO EXATO: Fase 3 — Pipeline de normalização para narração pt-BR (`text/`, golden tests com ≥ 80 casos, invariantes, `docs/EXEMPLOS_NORMALIZACAO.md`).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 2 — Seleção de páginas e extração (2026-10-11)
+- Concluído: `core/page_selection.py`, `pdf/pymupdf_reader.py`, `core/pdf_service.py`, `extractors/layout.py`, `extractors/noise.py`, `extractors/base.py`, `extractors/default.py`, `extractors/estrategia_concursos.py`, `extractors/registry.py`, fixtures sintéticas completas em `scripts/make_fixtures.py`.
+- Evidência: `scripts/check.sh` → ruff OK, mypy OK (25 arquivos), compileall OK, pytest → `143 passed in 2.59s`. ADR-008, ADR-009 e ADR-010 registrados.
+- Riscos/limitações: Sem PDFs reais fornecidos; padrões do Estratégia Concursos baseados em inferência e configuráveis em TOML.
+
 ### Fase 1 — Fundação e contratos (2026-10-11)
 - Concluído: pacotes, `models`, `exceptions`, `progress`, `config`, `ports` (Protocols), `utils/paths`, `utils/logging_config`, `pyproject.toml`, `scripts/check.sh|.ps1`, esqueleto de `make_fixtures.py`.
 - Evidência: `scripts/check.sh` → ruff check/format OK; compileall OK; mypy strict "no issues found in 16 source files"; `pytest` → `42 passed`.

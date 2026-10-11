@@ -1,0 +1,24 @@
+# Padrões da estratégia "Concursos" (materiais no estilo Estratégia Concursos).
+#
+# ATENÇÃO: estes padrões foram INFERIDOS a partir de características comuns desse tipo de
+# material (marca de licenciamento personalizada, URL do curso, numeração de páginas). Não foram
+# validados com PDFs reais (nenhum foi fornecido). Ajuste conforme seus PDFs; um padrão só remove
+# um bloco quando outro sinal também concorda (rodapé/cabeçalho, repetição, rotação...).
+
+[licenca]
+label = "marca_licenca"
+patterns = [
+  '\b(?:licenciad[oa]|exclusiv[oa])\s+(?:para|de)\b',
+  '\bCPF\b\D{0,5}\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b',
+  '\b\d{3}\.\d{3}\.\d{3}-\d{2}\b',
+]
+
+[curso]
+label = "cabecalho_curso"
+patterns = [
+  '(?:https?://)?(?:www\.)?estrategia(?:concursos)?\.[a-z.]+\S*',
+]
+
+[bancas]
+# Siglas reconhecidas para o formato inequívoco "(BANCA/ANO)" no início de um bloco.
+names = ["CESPE", "CEBRASPE", "FCC", "FGV", "VUNESP", "CESGRANRIO", "IBFC", "IDECAN", "QUADRIX", "FUNDATEC", "AOCP", "IADES", "CONSULPLAN", "FUNCAB"]

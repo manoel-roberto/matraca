@@ -19,6 +19,9 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["matraca*"]
 
+[tool.setuptools.package-data]
+"matraca.extractors" = ["*.toml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers -m 'not slow and not manual'"
@@ -40,7 +43,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]  # acentos/travessões em português sã
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "S311"]
-"scripts/**" = ["S101"]
+"scripts/**" = ["S101", "E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -54,3 +57,7 @@ ignore_missing_imports = true
 [tool.coverage.run]
 source = ["matraca"]
 omit = ["matraca/gui/desktop_app.py"]
+
+[[tool.mypy.overrides]]
+module = ["matraca.pdf.pymupdf_reader"]
+disallow_untyped_calls = false  # PyMuPDF tem anotações parciais

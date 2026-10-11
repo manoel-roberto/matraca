@@ -4,14 +4,14 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 
 | ID | Descrição | Prioridade | Módulo(s) | Teste(s) | Status | Evidência |
 |----|-----------|-----------|-----------|----------|--------|-----------|
-| RF-01 | Validar PDF | Must | pdf/pymupdf_reader.py, core/pdf_service.py | tests/unit/test_pdf_service.py | não iniciado | |
-| RF-02 | Total de páginas; processar só as selecionadas, em ordem | Must | core/pdf_service.py, extractors/ | tests/unit/test_extractors.py | não iniciado | |
-| RF-03 | Seleção de páginas por expressão | Must | core/page_selection.py | tests/unit/test_page_selection.py | não iniciado | |
-| RF-04 | Estratégias intercambiáveis | Must | extractors/registry.py, base.py | tests/unit/test_registry.py | não iniciado | |
-| RF-05 | Remoção conservadora de cabeçalho/rodapé/marca d'água | Must | extractors/noise.py | tests/unit/test_noise.py | não iniciado | |
-| RF-06 | Ordem de leitura (colunas) | Must | extractors/layout.py | tests/unit/test_layout.py | não iniciado | |
-| RF-07 | Tabelas, figuras, fórmulas configuráveis | Must | extractors/ | tests/unit/test_extractors.py | não iniciado | |
-| RF-08 | Detecção de páginas sem texto | Must | pdf/, extractors/ | tests/unit/test_extractors.py | não iniciado | |
+| RF-01 | Validar PDF | Must | pdf/pymupdf_reader.py, core/pdf_service.py | tests/unit/test_extraction.py | concluído | test_extraction.py: protegido/corrompido/vazio/inexistente/pasta (fase 2) |
+| RF-02 | Total de páginas; processar só as selecionadas, em ordem | Must | core/pdf_service.py, extractors/ | tests/unit/test_extraction.py | concluído | test_extraction.py: seleção, ordem e progresso |
+| RF-03 | Seleção de páginas por expressão | Must | core/page_selection.py | tests/unit/test_page_selection.py | concluído | test_page_selection.py: 49 casos (19 válidos + 25 inválidos + 5) |
+| RF-04 | Estratégias intercambiáveis | Must | extractors/registry.py, base.py | tests/unit/test_registry.py | concluído | test_registry.py: 5 testes (estratégia fake sem tocar UI/áudio) |
+| RF-05 | Remoção conservadora de cabeçalho/rodapé/marca d'água | Must | extractors/noise.py | tests/unit/test_noise_layout.py | concluído | test_extraction.py + test_noise_layout.py: negativo de rodapé jurídico OK |
+| RF-06 | Ordem de leitura (colunas) | Must | extractors/layout.py | tests/unit/test_noise_layout.py | concluído | fixtures 1 col, 2 col, título+2 col, caixa lateral; layout unitário |
+| RF-07 | Tabelas, figuras, fórmulas configuráveis | Must | extractors/ | tests/unit/test_extraction.py | concluído | test_noise_layout.py: marker/ignore/linear e figuras (fórmulas preservadas) |
+| RF-08 | Detecção de páginas sem texto | Must | pdf/, extractors/ | tests/unit/test_extraction.py | concluído | somente_imagem e pagina_em_branco -> PDFSemTextoError; aviso por página |
 | RF-09 | Pipeline de normalização pt-BR | Must | text/ | tests/golden, tests/unit/test_normalization*.py | não iniciado | |
 | RF-10 | Prévia bruto × normalizado + estatísticas | Should | core/job_service.py, gui/, web/ | tests/integration | não iniciado | |
 | RF-11 | Vozes pt-BR dinâmicas | Must | audio/edge_tts_client.py | tests/unit/test_voices.py | não iniciado | |
