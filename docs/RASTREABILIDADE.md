@@ -13,17 +13,17 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 | RF-07 | Tabelas, figuras, fórmulas configuráveis | Must | extractors/ | tests/unit/test_extraction.py | concluído | test_noise_layout.py: marker/ignore/linear e figuras (fórmulas preservadas) |
 | RF-08 | Detecção de páginas sem texto | Must | pdf/, extractors/ | tests/unit/test_extraction.py | concluído | somente_imagem e pagina_em_branco -> PDFSemTextoError; aviso por página |
 | RF-09 | Pipeline de normalização pt-BR | Must | text/, core/text_pipeline.py | tests/unit/test_normalization_golden.py, test_normalization_invariants.py | concluído | 88 testes golden (100%), 5 invariantes, revisão manual de 20 casos |
-| RF-10 | Prévia bruto × normalizado + estatísticas | Should | core/text_pipeline.py, job_service.py, gui/, web/ | tests/unit/test_text_pipeline.py, tests/integration | parcial | TextPipelineService gera NarrationText com alinhamento 1:1 e estatísticas |
-| RF-11 | Vozes pt-BR dinâmicas | Must | audio/edge_tts_client.py | tests/unit/test_voices.py | não iniciado | |
-| RF-12 | Segmentação segura | Must | audio/chunking.py | tests/unit/test_chunking.py | não iniciado | |
-| RF-13 | Geração assíncrona com progresso/cancelamento | Must | core/audio_service.py, job_service.py | tests/integration/test_job_service.py | não iniciado | |
-| RF-14 | Escrita segura do MP3 | Must | audio/mp3_writer.py | tests/unit/test_mp3_writer.py | não iniciado | |
+| RF-10 | Prévia bruto × normalizado + estatísticas | Should | core/text_pipeline.py, job_service.py, gui/, web/ | tests/unit/test_text_pipeline.py, tests/integration | concluído | TextPipelineService gera NarrationText com alinhamento 1:1; JobService.get_preview |
+| RF-11 | Vozes pt-BR dinâmicas | Must | audio/edge_tts_client.py | tests/unit/test_audio_service.py | concluído | edge-tts 7.2.8 verificado, filtro pt-BR dinâmico, FakeTTSBackend e manual |
+| RF-12 | Segmentação segura | Must | audio/chunking.py | tests/unit/test_chunking.py | concluído | Parágrafos > frases > vírgulas > palavras; preserva abreviações e números |
+| RF-13 | Geração assíncrona com progresso/cancelamento | Must | core/audio_service.py, job_service.py | tests/integration/test_job_service.py | concluído | AudioService com retentativa transitória, cancelamento limpo e thread dedicada |
+| RF-14 | Escrita segura do MP3 | Must | audio/mp3_writer.py | tests/unit/test_mp3_writer.py | concluído | Escrita atômica .part -> os.replace, validação mutagen, limpeza de resíduos |
 | RF-15 | Interface Desktop | Must | gui/ | tests/unit/test_presenter.py | não iniciado | |
 | RF-16 | Interface Web | Must | web/, app_web.py | tests/unit/test_web_logic.py | não iniciado | |
-| RF-17 | Velocidade da voz | Should | audio/, config.py | tests/unit/test_rate.py | não iniciado | |
-| RF-18 | `doctor` e CLI mínima | Should | cli.py, doctor.py | tests/unit/test_doctor.py | não iniciado | |
-| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | parcial | tests/unit/test_architecture.py (5 testes) |
-| RNF-02 | Testes sem rede nem TTS real | Must | tests/ | suíte completa | não iniciado | |
+| RF-17 | Velocidade da voz | Should | audio/, config.py | tests/unit/test_audio_service.py | concluído | format_rate(-50% a +100%) validado e repassado ao serviço TTS |
+| RF-18 | `doctor` e CLI mínima | Should | cli.py, doctor.py | tests/unit/test_doctor.py, test_cli.py | concluído | python -m matraca doctor [--tts] e subcomando run com --preview |
+| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | parcial | JobService centraliza PDF + texto + áudio; UIs chamarão apenas ele |
+| RNF-02 | Testes sem rede nem TTS real | Must | tests/ | suíte completa | concluído | Todos os testes usam FakeTTSBackend e fixtures locais; sem rede por padrão |
 | RNF-03 | Type hints, docstrings pt-BR | Must | todo o projeto | mypy, ruff | parcial | mypy strict OK, ruff OK (fase 1) |
 | RNF-04 | Segurança (sem eval, sem traversal, sem texto em logs) | Must | utils/, logging_config | tests/unit/test_security.py | parcial | test_paths.py, test_core_basics.py (fase 1) |
 | RNF-05 | Aviso de privacidade (TTS remoto) | Must | README, UIs | revisão manual | não iniciado | |

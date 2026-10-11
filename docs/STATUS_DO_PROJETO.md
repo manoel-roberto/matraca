@@ -1,15 +1,19 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 3 concluída (pipeline de normalização). Próxima: Fase 4 (Motor de áudio).
-- Último commit/tag: `fase-3-concluida`
-- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas (88 casos golden, 5 invariantes, text pipeline service com alinhamento 1:1 original x normalizado), 258 testes no total.
-- Quebrado/pendente: motor de áudio e TTS (Fase 4), UIs (Fases 5 e 6).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-011 e ADR-012 registrados).
-- PRÓXIMO PASSO EXATO: Fase 4 — Motor de áudio (edge-tts, fake backend, chunking, mp3_writer atômico, job_service, CLI doctor).
+- Fase atual: 4 concluída (motor de áudio). Próxima: Fase 5 (Interface Desktop).
+- Último commit/tag: `fase-4-concluida`
+- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), 295 testes no total passando.
+- Quebrado/pendente: interface Desktop (Fase 5) e interface Web (Fase 6).
+- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-015 registrados).
+- PRÓXIMO PASSO EXATO: Fase 5 — Interface Desktop (CustomTkinter, presenter.py testável sem display, fila de eventos do worker, desktop_app.py).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 4 — Motor de áudio (2026-10-11)
+- Concluído: `matraca/audio/` (chunking, mp3_writer, edge_tts_client, fake_tts), `matraca/core/audio_service.py`, `matraca/core/job_service.py`, `matraca/doctor.py`, `matraca/cli.py`, `docs/TESTE_MANUAL_TTS.md`, ADR-013 a ADR-015.
+- Evidência: `scripts/check.sh` → ruff OK, mypy OK (40 arquivos), compileall OK, pytest → `295 passed in 4.67s`. Teste real do edge-tts executado com sucesso (3 vozes pt-BR, latência ~1012ms).
+- Riscos/limitações: Nenhuma dependência de rede nos testes automatizados (usam FakeTTSBackend). Teste manual com edge-tts real registrado em `docs/TESTE_MANUAL_TTS.md`.
 ### Fase 3 — Pipeline de normalização (2026-10-11)
 - Concluído: `matraca/text/` (linebreaks, numbers, dates, legal_terms, normalization), `matraca/core/text_pipeline.py`, `tests/golden/casos_normalizacao.tsv` (88 casos), invariantes, alinhamento de texto e métricas, `docs/EXEMPLOS_NORMALIZACAO.md`.
 - Evidência: `scripts/check.sh` → ruff OK, mypy OK (31 arquivos), compileall OK, pytest → `258 passed in 2.82s`. ADR-011 e ADR-012 registrados.

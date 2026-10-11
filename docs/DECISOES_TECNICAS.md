@@ -100,6 +100,37 @@
 - Evidência verificada: Testes unitários de números, moeda e percentual passando.
 - Status: aceita
 
+## ADR-013 — Integração com edge-tts 7.2.8 e inspeção de API
+- Data / Fase: 2026-10-11 / Fase 4
+- Contexto: API do edge-tts precisa ser validada na instalação real (A.12.6, A.13.5).
+- Decisão:
+  1. `edge_tts.list_voices()` retorna dicionários contendo `ShortName`, `Locale`, `Gender` e `FriendlyName`. Filtrar por `Locale.startswith("pt-BR")`.
+  2. `edge_tts.Communicate(text, voice, rate=rate)` aceita `rate` no formato string percentual (`+0%`, `+20%`, `-10%`).
+  3. `Communicate.save(dest)` assíncrono grava diretamente em arquivo.
+  4. Isolar chamadas de edge-tts no adaptador `matraca/audio/edge_tts_client.py` implementando o Protocol `TTSBackend`.
+  5. Testes automatizados nunca chamam o edge-tts real; usam `FakeTTSBackend` (`audio/fake_tts.py`).
+- Evidência verificada: Inspeção direta no Python 3.12 (`edge-tts 7.2.8`), identificando 3 vozes pt-BR ativas (`pt-BR-ThalitaMultilingualNeural`, `pt-BR-AntonioNeural`, `pt-BR-FranciscaNeural`).
+- Status: aceita
+
+## ADR-014 — Concatenação direta de segmentos MP3 e validação com Mutagen
+- Data / Fase: 2026-10-11 / Fase 4
+- Contexto: Avaliação entre concatenação de fluxo MP3 puro vs FFmpeg/pydub para junção de áudios (A.13.5).
+- Decisão:
+  1. Utilizar concatenação binária direta de streams MP3 gerados pelo mesmo serviço/voz através da interface `Mp3Joiner`.
+  2. Validar o arquivo concatenado final utilizando `mutagen.mp3.MP3` (inspecionando cabeçalhos MPEG, bitrate e duração positiva).
+  3. Evitar dependência obrigatória de subprocesso do FFmpeg em tempo de execução para a junção básica de MP3 homogêneos.
+- Evidência verificada: Spike técnico real com 2 segmentos gerados pelo edge-tts unidos diretamente e validados com `mutagen.mp3.MP3(joined)`, resultando em 5.496s de áudio decodificável sem erros.
+- Status: aceita
+
+## ADR-015 — Concorrência e ciclo de vida de Jobs (Thread isolada com Event Loop próprio)
+- Data / Fase: 2026-10-11 / Fase 4
+- Contexto: Orquestração de tarefas assíncronas do TTS sem conflitar com loops ativos de UIs (A.12.7).
+- Decisão:
+  1. `JobService` executa o processamento do job em uma `threading.Thread` dedicada de trabalho.
+  2. A thread de trabalho inicializa e encerra seu próprio `asyncio.new_event_loop()`, garantindo que nunca ocorra colisão de `asyncio.run()` com loops existentes de frameworks (como Streamlit ou CustomTkinter).
+  3. Progresso e cancelamento via `ProgressCallback` e `CancellationToken` (thread-safe baseados em `threading.Event`).
+- Evidência verificada: Testes de concorrência com `FakeTTSBackend` simulando cancelamento precoce e falhas progressivas.
+- Status: aceita
+
 ## Decisões a tomar nas fases seguintes
-- ADR: concorrência, tamanho do chunk, `rate`, junção de MP3, inspeção do `edge-tts` (Fase 4).
-- ADR: MVP da GUI (Fase 5); estado Streamlit (Fase 6).
+- ADR: MVP da GUI CustomTkinter (Fase 5); estado Streamlit e polling de sessão (Fase 6).

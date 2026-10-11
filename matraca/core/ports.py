@@ -70,6 +70,12 @@ class PDFTextStrategy(Protocol):
     ) -> ExtractionResult: ...
 
 
+class StrategyProvider(Protocol):
+    """Provedor ou registro de estratégias de extração por nome estável."""
+
+    def get(self, name: str) -> PDFTextStrategy: ...
+
+
 class TTSBackend(Protocol):
     """Backend de síntese de fala injetável."""
 
@@ -83,3 +89,9 @@ class TTSBackend(Protocol):
         dest: Path,
         cancel: CancellationToken | None,
     ) -> None: ...
+
+
+class Mp3Joiner(Protocol):
+    """Juntador de múltiplos arquivos MP3 em um único destino."""
+
+    def join(self, segment_paths: Sequence[Path], dest_path: Path) -> float: ...
