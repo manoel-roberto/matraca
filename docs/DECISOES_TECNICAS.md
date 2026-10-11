@@ -143,5 +143,17 @@
 - Evidência verificada: Testes unitários com `FakeView` cobrindo seleção de PDF, prévia, validação, fluxo de execução, erro, cancelamento e nova tentativa executam sem display em milissegundos.
 - Status: aceita
 
+## ADR-017 — Interface Web com Streamlit, isolamento de sessão e sanitização de uploads
+- Data / Fase: 2026-10-11 / Fase 6
+- Contexto: A interface Web deve permitir upload, prévia, geração de áudio e download com segurança de dados, isolamento de sessão, respeito ao modelo de reexecução do Streamlit e sem duplicação de lógica de domínio (A.13.7, RF-16).
+- Decisão:
+  1. Extrair toda a lógica de validação de uploads, sanitização de caminhos, formatação de taxas e gerenciamento de temporários para `matraca/web/page_logic.py`, isolada de dependências visuais e testável de forma unitária.
+  2. A validação de arquivos enviados verifica tamanho máximo (configurado em 50 MB via `.streamlit/config.toml` e `MAX_UPLOAD_MB_DEFAULT`), sanitiza rigorosamente o nome do arquivo com `sanitize_filename` e valida o cabeçalho mágico de PDF (`%PDF-` nos primeiros 1024 bytes).
+  3. Os arquivos são isolados por sessão através do `WebSessionManager` em pastas temporárias exclusivas sob o diretório temporário do sistema, sendo removidos no descarte/reinicialização.
+  4. A execução da síntese de áudio reutiliza o mesmo `JobService` central das demais interfaces, executando o job através de `JobService.run_job_in_thread(...)` com sincronização via fila thread-safe e atualização reativa de progresso no Streamlit.
+- Evidência verificada: Testes unitários em `tests/unit/test_web_logic.py` cobrem validação de nomes maliciosos, detecção de cabeçalho mágico, rejeição de limites de tamanho, ciclo de vida dos temporários, integração com `JobService` e teste de montagem visual via `streamlit.testing.v1.AppTest`.
+- Status: aceita
+
 ## Decisões a tomar nas fases seguintes
-- ADR: estado Streamlit e polling de sessão (Fase 6).
+- ADR: empacotamento, testes de longa duração e validação de regressão (Fase 7).
+

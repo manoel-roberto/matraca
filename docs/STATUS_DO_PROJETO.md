@@ -1,15 +1,19 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 5 concluída (Interface Desktop). Próxima: Fase 6 (Interface Web Streamlit).
-- Último commit/tag: `fase-5-concluida`
-- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP (DesktopPresenter + DesktopView Protocol + UIState + fila de eventos thread-safe), janela de prévia modal com abas, cancelamento e re-tentativa, 303 testes no total passando.
-- Quebrado/pendente: interface Web com Streamlit (Fase 6).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-016 registrados).
-- PRÓXIMO PASSO EXATO: Fase 6 — Interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, isolamento de sessão, sanitização e temporários, 50MB maxUploadSize, polling de progresso, download de MP3, testes unitários de lógica).
+- Fase atual: 6 concluída (Interface Web Streamlit). Próxima: Fase 7 (Integração, Regressão e Revisão).
+- Último commit/tag: `fase-6-concluida`
+- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP, interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, page_logic.py, isolamento de sessão, sanitização e validação de %PDF-, limite de 50MB, polling de progresso, download de MP3, testes AppTest), 311 testes no total passando.
+- Quebrado/pendente: suíte de integração e regressão de 500 páginas (Fase 7), documentação e entrega final (Fase 8).
+- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-017 registrados).
+- PRÓXIMO PASSO EXATO: Fase 7 — Integração, Regressão e Revisão (teste lento de 500 páginas `grande_500.pdf`, medição de cobertura pytest-cov, checklist de segurança/privacidade, revisão de rastreabilidade).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 6 — Interface Web com Streamlit (2026-10-11)
+- Concluído: `matraca/web/page_logic.py`, `matraca/web/streamlit_app.py`, `app_web.py`, `.streamlit/config.toml`, ADR-017, testes unitários e AppTest em `tests/unit/test_web_logic.py`.
+- Evidência: `scripts/check.sh` → ruff OK, mypy strict OK (44 arquivos), compileall OK, pytest → `311 passed, 1 skipped in 5.59s`. Execução real do Streamlit testada via uvicorn/http 8502 com sucesso.
+- Riscos/limitações: Interface web sem autenticação para uso local documentada com avisos de privacidade explícitos sobre o TTS remoto.
 ### Fase 5 — Interface Desktop (2026-10-11)
 - Concluído: `matraca/gui/presenter.py`, `matraca/gui/desktop_app.py`, `app_desktop.py`, `docs/ROTEIRO_TESTE_DESKTOP.md`, ADR-016, 8 testes unitários de presenter cobrindo seleção, prévia, geração, cancelamento e erro sem display.
 - Evidência: `scripts/check.sh` → ruff OK, mypy OK (42 arquivos), compileall OK, pytest → `303 passed in 4.78s`.

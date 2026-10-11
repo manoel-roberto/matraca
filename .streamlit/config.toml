@@ -1,0 +1,18 @@
+# Configuração do Streamlit para o Matraca (A.13.7)
+
+[server]
+# Limite máximo de upload em MB (sincronizado com MAX_UPLOAD_MB_DEFAULT em matraca.config)
+maxUploadSize = 50
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"

@@ -19,14 +19,14 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 | RF-13 | Geração assíncrona com progresso/cancelamento | Must | core/audio_service.py, job_service.py | tests/integration/test_job_service.py | concluído | AudioService com retentativa transitória, cancelamento limpo e thread dedicada |
 | RF-14 | Escrita segura do MP3 | Must | audio/mp3_writer.py | tests/unit/test_mp3_writer.py | concluído | Escrita atômica .part -> os.replace, validação mutagen, limpeza de resíduos |
 | RF-15 | Interface Desktop | Must | gui/ | tests/unit/test_presenter.py | concluído | CustomTkinter, MVP com DesktopPresenter testável sem display, thread-safe |
-| RF-16 | Interface Web | Must | web/, app_web.py | tests/unit/test_web_logic.py | não iniciado | |
+| RF-16 | Interface Web | Must | web/, app_web.py | tests/unit/test_web_logic.py | concluído | Streamlit, upload seguro, 50MB, temporário por sessão, prévia e AppTest |
 | RF-17 | Velocidade da voz | Should | audio/, config.py | tests/unit/test_audio_service.py | concluído | format_rate(-50% a +100%) validado e repassado ao serviço TTS |
 | RF-18 | `doctor` e CLI mínima | Should | cli.py, doctor.py | tests/unit/test_doctor.py, test_cli.py | concluído | python -m matraca doctor [--tts] e subcomando run com --preview |
-| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | parcial | JobService centraliza PDF + texto + áudio; UIs chamarão apenas ele |
+| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | concluído | JobService centraliza PDF + texto + áudio; Desktop e Web usam JobService |
 | RNF-02 | Testes sem rede nem TTS real | Must | tests/ | suíte completa | concluído | Todos os testes usam FakeTTSBackend e fixtures locais; sem rede por padrão |
-| RNF-03 | Type hints, docstrings pt-BR | Must | todo o projeto | mypy, ruff | parcial | mypy strict OK, ruff OK (fase 1) |
-| RNF-04 | Segurança (sem eval, sem traversal, sem texto em logs) | Must | utils/, logging_config | tests/unit/test_security.py | parcial | test_paths.py, test_core_basics.py (fase 1) |
-| RNF-05 | Aviso de privacidade (TTS remoto) | Must | README, UIs | revisão manual | não iniciado | |
+| RNF-03 | Type hints, docstrings pt-BR | Must | todo o projeto | mypy, ruff | concluído | mypy strict OK (44 arquivos), ruff OK |
+| RNF-04 | Segurança (sem eval, sem traversal, sem texto em logs) | Must | utils/, logging_config | tests/unit/test_security.py, test_paths.py | concluído | Sem eval/exec/shell=True, sanitização rigorosa de arquivos |
+| RNF-05 | Aviso de privacidade (TTS remoto) | Must | README, UIs | revisão manual | concluído | Aviso claro nas UIs Desktop e Web sobre TTS remoto |
 | RNF-06 | Linux e Windows | Should | scripts/, README | check.ps1 (não executável aqui) | não iniciado | |
 | RNF-07 | UI nunca congela | Must | gui/presenter, web/ | tests/unit/test_presenter.py | não iniciado | |
 | RNF-08 | Memória controlada (incremental) | Must | extractors/ | tests/integration/test_perf_500p.py (slow) | não iniciado | |
