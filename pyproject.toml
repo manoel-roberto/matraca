@@ -54,6 +54,10 @@ files = ["matraca"]
 module = ["fitz", "pymupdf", "pymupdf.*", "customtkinter", "mutagen", "mutagen.*", "num2words", "num2words.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["matraca.gui.desktop_app"]
+disallow_subclassing_any = false
+
 [tool.coverage.run]
 source = ["matraca"]
 omit = ["matraca/gui/desktop_app.py"]

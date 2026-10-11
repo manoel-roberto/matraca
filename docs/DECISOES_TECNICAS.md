@@ -132,5 +132,16 @@
 - Evidência verificada: Testes de concorrência com `FakeTTSBackend` simulando cancelamento precoce e falhas progressivas.
 - Status: aceita
 
+## ADR-016 — Padrão MVP para Interface Desktop e comunicação via Fila Thread-Safe
+- Data / Fase: 2026-10-11 / Fase 5
+- Contexto: A interface gráfica Desktop (CustomTkinter) precisa ser 100% testável de forma determinística sem exigir monitor/display ativo (headless) e nunca bloquear a thread de renderização da UI (A.13.6, RNF-07).
+- Decisão:
+  1. Adotar o padrão Model-View-Presenter (MVP).
+  2. O `DesktopPresenter` gerencia todo o estado da UI, validações de entrada e orquestração de tarefas assíncronas do `JobService`, implementando lógica pura em Python sem qualquer importação de `customtkinter` ou `tkinter`.
+  3. A comunicação dos trabalhadores em segundo plano (extração, prévia, síntese) para a thread da UI ocorre através de uma fila thread-safe `queue.Queue`.
+  4. A View concreta (`DesktopApp`) apenas consome os eventos da fila através de agendamento periódico com `root.after(50, presenter.poll_events)`, garantindo que nenhum widget seja modificado fora da thread principal de eventos da UI.
+- Evidência verificada: Testes unitários com `FakeView` cobrindo seleção de PDF, prévia, validação, fluxo de execução, erro, cancelamento e nova tentativa executam sem display em milissegundos.
+- Status: aceita
+
 ## Decisões a tomar nas fases seguintes
-- ADR: MVP da GUI CustomTkinter (Fase 5); estado Streamlit e polling de sessão (Fase 6).
+- ADR: estado Streamlit e polling de sessão (Fase 6).

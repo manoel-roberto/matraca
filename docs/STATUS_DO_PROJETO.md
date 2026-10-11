@@ -1,15 +1,19 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 4 concluída (motor de áudio). Próxima: Fase 5 (Interface Desktop).
-- Último commit/tag: `fase-4-concluida`
-- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), 295 testes no total passando.
-- Quebrado/pendente: interface Desktop (Fase 5) e interface Web (Fase 6).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-015 registrados).
-- PRÓXIMO PASSO EXATO: Fase 5 — Interface Desktop (CustomTkinter, presenter.py testável sem display, fila de eventos do worker, desktop_app.py).
+- Fase atual: 5 concluída (Interface Desktop). Próxima: Fase 6 (Interface Web Streamlit).
+- Último commit/tag: `fase-5-concluida`
+- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP (DesktopPresenter + DesktopView Protocol + UIState + fila de eventos thread-safe), janela de prévia modal com abas, cancelamento e re-tentativa, 303 testes no total passando.
+- Quebrado/pendente: interface Web com Streamlit (Fase 6).
+- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-016 registrados).
+- PRÓXIMO PASSO EXATO: Fase 6 — Interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, isolamento de sessão, sanitização e temporários, 50MB maxUploadSize, polling de progresso, download de MP3, testes unitários de lógica).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 5 — Interface Desktop (2026-10-11)
+- Concluído: `matraca/gui/presenter.py`, `matraca/gui/desktop_app.py`, `app_desktop.py`, `docs/ROTEIRO_TESTE_DESKTOP.md`, ADR-016, 8 testes unitários de presenter cobrindo seleção, prévia, geração, cancelamento e erro sem display.
+- Evidência: `scripts/check.sh` → ruff OK, mypy OK (42 arquivos), compileall OK, pytest → `303 passed in 4.78s`.
+- Riscos/limitações: Interface gráfica interativa depende de servidor X/Wayland em ambiente de usuário final; coberta por testes automatizados sem display via FakeDesktopView e MVP desacoplado. Roteiro manual em `docs/ROTEIRO_TESTE_DESKTOP.md`.
 ### Fase 4 — Motor de áudio (2026-10-11)
 - Concluído: `matraca/audio/` (chunking, mp3_writer, edge_tts_client, fake_tts), `matraca/core/audio_service.py`, `matraca/core/job_service.py`, `matraca/doctor.py`, `matraca/cli.py`, `docs/TESTE_MANUAL_TTS.md`, ADR-013 a ADR-015.
 - Evidência: `scripts/check.sh` → ruff OK, mypy OK (40 arquivos), compileall OK, pytest → `295 passed in 4.67s`. Teste real do edge-tts executado com sucesso (3 vozes pt-BR, latência ~1012ms).

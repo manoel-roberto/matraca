@@ -18,7 +18,7 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 | RF-12 | Segmentação segura | Must | audio/chunking.py | tests/unit/test_chunking.py | concluído | Parágrafos > frases > vírgulas > palavras; preserva abreviações e números |
 | RF-13 | Geração assíncrona com progresso/cancelamento | Must | core/audio_service.py, job_service.py | tests/integration/test_job_service.py | concluído | AudioService com retentativa transitória, cancelamento limpo e thread dedicada |
 | RF-14 | Escrita segura do MP3 | Must | audio/mp3_writer.py | tests/unit/test_mp3_writer.py | concluído | Escrita atômica .part -> os.replace, validação mutagen, limpeza de resíduos |
-| RF-15 | Interface Desktop | Must | gui/ | tests/unit/test_presenter.py | não iniciado | |
+| RF-15 | Interface Desktop | Must | gui/ | tests/unit/test_presenter.py | concluído | CustomTkinter, MVP com DesktopPresenter testável sem display, thread-safe |
 | RF-16 | Interface Web | Must | web/, app_web.py | tests/unit/test_web_logic.py | não iniciado | |
 | RF-17 | Velocidade da voz | Should | audio/, config.py | tests/unit/test_audio_service.py | concluído | format_rate(-50% a +100%) validado e repassado ao serviço TTS |
 | RF-18 | `doctor` e CLI mínima | Should | cli.py, doctor.py | tests/unit/test_doctor.py, test_cli.py | concluído | python -m matraca doctor [--tts] e subcomando run com --preview |
