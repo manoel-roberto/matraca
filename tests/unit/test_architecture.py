@@ -23,6 +23,7 @@ THIRD_PARTY_OWNERS: dict[str, tuple[str, ...]] = {
     "tkinter": ("gui/desktop_app.py", "doctor.py"),
     "streamlit": ("web/streamlit_app.py", "web/page_logic.py", "doctor.py"),
     "mutagen": ("audio/mp3_writer.py", "audio/mp3_validation.py"),
+    "num2words": ("text/numbers.py",),
 }
 
 

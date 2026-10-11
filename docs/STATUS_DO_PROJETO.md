@@ -1,15 +1,29 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 7 concluída (Integração, Regressão e Revisão). Próxima: Fase 8 (Documentação e Entrega Final).
-- Último commit/tag: `fase-7-concluida`
-- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas, motor de áudio assíncrono (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica de MP3 .part -> os.replace com validação mutagen, retentativas transitórias, cancelamento cooperativo, JobService facade completo, CLI mínima e diagnóstico doctor com --tts), interface Desktop CustomTkinter desacoplada com padrão MVP, interface Web com Streamlit (app_web.py, matraca/web/streamlit_app.py, page_logic.py, isolamento de sessão, sanitização e validação de %PDF-, limite de 50MB, polling de progresso, download de MP3, testes AppTest), teste de 500 páginas (grande_500.pdf), medição real de cobertura com pytest-cov atingindo 91% global (metas de 90% em page_selection/text/chunking e 80% em core superadas), checklist completo de segurança e privacidade aprovado, 311 testes passando e 1 lento validado.
-- Quebrado/pendente: documentação e entrega final (Fase 8).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-013 a ADR-017 registrados).
-- PRÓXIMO PASSO EXATO: Fase 8 — Documentação e Entrega (README.md completo e detalhado com instruções Linux/Windows, ARQUITETURA.md, revisão de CLAUDE.md e simulação de instalação em venv).
-- Comandos para validar: `scripts/check.sh` (usa `.venv`).
+- Fase atual: 8 concluída (Documentação e Entrega Final). TODAS AS FASES (0 a 8) CONCLUÍDAS COM SUCESSO.
+- Último commit/tag: `fase-8-concluida`
+- Funciona (verificado por teste real):
+  - Seleção de páginas por expressão ou totalidade com validação de limites;
+  - Extração de texto por layout, colunas e heurística de ruídos (Estratégia Concursos);
+  - Normalização pura pt-BR em 9 etapas cobrindo leis, artigos, parágrafos, incisos, números, datas e siglas;
+  - Motor assíncrono de áudio (edge-tts 7.2.8, FakeTTSBackend, chunking inteligente, escrita atômica .part -> os.replace, validação mutagen);
+  - JobService facade central com concorrência thread-safe e CancellationToken;
+  - Diagnóstico do ambiente com CLI e `python -m matraca doctor [--tts]`;
+  - Interface Desktop CustomTkinter desacoplada com padrão MVP e janela modal de prévia;
+  - Interface Web Streamlit com upload seguro (50MB), sanitização e isolamento por sessão;
+  - Suíte de 311 testes unitários/integração + 1 teste lento de documento extenso (500 páginas);
+  - Cobertura global de código de 91% medida com `pytest-cov`;
+  - Simulação de instalação em ambiente virtual limpo executada e validada do zero;
+  - Documentação completa (`README.md`, `ARQUITETURA.md`, `CLAUDE.md`, `EXEMPLOS_NORMALIZACAO.md`).
+- Quebrado/pendente: NENHUMA pendência técnica. Projeto 100% pronto para uso e entrega.
+- Decisões vigentes: ADR-001 a ADR-017 registrados em `docs/DECISOES_TECNICAS.md`.
+- Comandos para validar: `./scripts/check.sh` (Linux) ou `.\scripts\check.ps1` (Windows).
 
 ## Histórico por fase
+### Fase 8 — Documentação e entrega final (2026-10-11)
+- Concluído: `README.md` completo (instalação, UIs, CLI, testes, privacidade, limitações, troubleshooting), `docs/ARQUITETURA.md` com diagramas Mermaid de fluxo e camadas, revisão de `CLAUDE.md`, inclusão de `num2words>=0.5.14` em `requirements.txt` e `pyproject.toml`, simulação e validação de instalação limpa em venv isolado com sucesso (`python -m matraca doctor` aprovado).
+- Evidência: `scripts/check.sh` → ruff OK, mypy strict OK (44 arquivos), compileall OK, pytest → `311 passed, 1 skipped, 1 deselected in 4.00s`. Simulação limpa do zero executada com sucesso.
 ### Fase 7 — Integração, regressão, revisão (2026-10-11)
 - Concluído: teste lento `test_perf_500p.py` com `grande_500.pdf` (1.26s), relatório de cobertura `pytest-cov` registrando 91% global (100% page_selection, 98% job_service, 91% audio_service, 93%-95% text, 90% chunking), checklist de segurança e privacidade 100% verificado (sem logs de texto, sem eval/exec/shell=True, sanitização estrita, limpeza de temporários).
 - Evidência: `scripts/check.sh` → ruff OK, mypy strict OK (44 arquivos), compileall OK, pytest → `311 passed, 1 skipped, 1 deselected in 5.75s`. `pytest -m slow` → `1 passed in 1.26s`. Cobertura → `91% TOTAL`.

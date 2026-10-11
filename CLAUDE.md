@@ -21,21 +21,29 @@ Fonte da verdade do escopo: `Prompt_Matraca_v2.md`.
 9. Respostas ao usuário em português do Brasil.
 
 ## Estado
-Ver docs/STATUS_DO_PROJETO.md → "Retomada rápida".
+Todas as Fases (0 a 8) concluídas. Ver docs/STATUS_DO_PROJETO.md.
 
 ## Mapa de módulos
 | Pasta | Responsabilidade |
 |---|---|
-| `matraca/core/` | modelos, exceções, progresso, `ports.py` (Protocols), serviços (stdlib apenas) |
-| `matraca/config.py` | dataclasses de configuração imutáveis |
+| `matraca/core/` | Modelos, exceções, progresso, `ports.py`, serviços centrais (`job_service`, `pdf_service`, `audio_service`, `text_pipeline`) |
+| `matraca/config.py` | Dataclasses de configuração imutáveis |
 | `matraca/utils/` | `paths` (sanitização, colisão, temporários), `logging_config` |
-| `matraca/pdf/` | adaptador PyMuPDF (único que importa fitz) |
-| `matraca/extractors/` | estratégias de extração |
-| `matraca/text/` | etapas puras de normalização |
-| `matraca/audio/` | chunking, edge-tts (adaptador), MP3 |
-| `matraca/gui/`, `matraca/web/` | interfaces finas |
-| `tests/` | unit, integration, golden, fixtures (sintéticas via scripts/make_fixtures.py) |
+| `matraca/pdf/` | Adaptador PyMuPDF (`pymupdf_reader.py`) |
+| `matraca/extractors/` | Extração por layout, detecção de colunas, remoção de ruídos e Estratégia Concursos |
+| `matraca/text/` | Pipeline de 9 etapas de normalização pt-BR (leis, artigos, incisos, números, datas, prosódia) |
+| `matraca/audio/` | Segmentação inteligente (`chunking.py`), cliente `edge_tts`, backend fake para testes e junção atômica de MP3 |
+| `matraca/gui/` | Interface Desktop com CustomTkinter e padrão MVP (`presenter.py` testável sem display) |
+| `matraca/web/` | Interface Web com Streamlit (`page_logic.py` e `streamlit_app.py`) |
+| `matraca/doctor.py` | Diagnóstico de integridade do ambiente e conectividade TTS |
+| `matraca/cli.py` | Interface de linha de comando para automação |
+| `tests/` | Testes unitários, de integração, golden tests e testes de desempenho (500 páginas) |
 
 ## Decisões vigentes (ADRs)
-- ADR-001 estrutura A.12.2 · ADR-002 Python 3.12 (min 3.11) · ADR-003 identificadores em inglês, docs pt-BR
-- ADR-004 dependências verificadas · ADR-005 mypy (proposta)
+- ADR-001 a ADR-005: Fundação, padrões de nomenclatura, versões e ferramentas de lint/tipo.
+- ADR-006 a ADR-008: PyMuPDF como leitor PDF, extração de texto estruturado com BBox.
+- ADR-009 e ADR-010: Detecção heurística de ruídos (cabeçalho/rodapé repetidos) e colunas.
+- ADR-011 e ADR-012: Pipeline de normalização em 9 etapas e ordenação estrita.
+- ADR-013 a ADR-015: edge-tts como backend de áudio, junção de MP3 e loop assíncrono em thread isolada.
+- ADR-016: Padrão MVP desacoplado para Desktop e comunicação thread-safe via fila.
+- ADR-017: Arquitetura Streamlit com sanitização rígida de upload, temporários por sessão e JobService central.
