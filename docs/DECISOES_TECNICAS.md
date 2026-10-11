@@ -36,10 +36,25 @@
 - Consequências / riscos: versões muito recentes podem mudar APIs; cada API será inspecionada antes do uso (A.1).
 - Status: aceita (num2words: proposta até a Fase 3)
 
-## ADR-005 — Verificação de tipos com mypy
-- Data / Fase: 2026-10-11 / Fase 0
-- Decisão: mypy em modo estrito moderado para `core/`, `text/`, `audio/`; demais pacotes com checagem padrão.
-- Status: proposta (confirmar na Fase 1)
+## ADR-005 — Verificação de tipos com mypy (strict)
+- Data / Fase: 2026-10-11 / Fase 1
+- Decisão: `mypy --strict` em todo o pacote `matraca` (config no `pyproject.toml`); `ignore_missing_imports` apenas para `fitz`, `pymupdf`, `customtkinter`, `mutagen`.
+- Evidência verificada: `mypy` → `Success: no issues found in 16 source files`.
+- Status: aceita
+
+## ADR-006 — Contratos em `core/ports.py` e modelos "crus" em `core/models.py`
+- Data / Fase: 2026-10-11 / Fase 1
+- Contexto: A.12.2 coloca `PDFTextStrategy` em `extractors/base.py`, mas `core/` (JobService) precisa do contrato sem importar adaptadores.
+- Decisão: Protocols `PDFReader`, `PDFTextStrategy`, `TTSBackend` em `core/ports.py`; `extractors/base.py` os reexporta. O `PDFReader` devolve `RawPage/RawBlock/RawLine` (definidos em `core/models.py`), mantendo extratores independentes do PyMuPDF. `ProgressEvent`/`Stage` ficam em `core/progress.py` (evita ciclo).
+- Alternativas consideradas: contrato dentro de `extractors/` (faria `core` depender de adaptadores).
+- Consequências / riscos: pequeno desvio da árvore A.12.2 (um arquivo extra, `ports.py`).
+- Status: aceita
+
+## ADR-007 — Fronteiras de dependência verificadas por AST
+- Data / Fase: 2026-10-11 / Fase 1
+- Decisão: `tests/unit/test_architecture.py` impõe: `core/` só importa stdlib e `matraca.{core,config,text,audio.chunking}`; cada biblioteca de terceiros só é importada por seu adaptador; sem `eval/exec/shell=True`; `import matraca` sem efeitos.
+- Evidência verificada: 5 testes passando (ver STATUS).
+- Status: aceita
 
 ## Decisões a tomar nas fases seguintes
 - ADR: ordem das páginas — crescente e deduplicada (Fase 2; fixa pelo prompt A.13.1).

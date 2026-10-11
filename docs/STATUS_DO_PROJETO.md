@@ -1,15 +1,20 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 0 concluída (inspeção/planejamento). Próxima: Fase 1.
-- Último commit/tag: `fase-0-concluida`
-- Funciona (verificado por teste): nada de produto ainda (Fase 0 não tem código).
-- Quebrado/pendente: tudo de produto.
+- Fase atual: 1 concluída (fundação e contratos). Próxima: Fase 2.
+- Último commit/tag: `fase-1-concluida`
+- Funciona (verificado por teste): modelos, exceções, progresso/cancelamento, `utils/paths`, `utils/logging_config`, fronteiras de dependência (AST). 42 testes.
+- Quebrado/pendente: extração, normalização, áudio, UIs (fases 2-6).
 - Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (fim).
-- PRÓXIMO PASSO EXATO: Fase 1 — estrutura de pacotes, `models.py`, `exceptions.py`, `progress.py`, `config.py`, Protocols, `utils/`, `pyproject.toml`, `scripts/check.sh`.
-- Comandos para validar: `source .venv/bin/activate && scripts/check.sh` (a partir da Fase 1).
+- PRÓXIMO PASSO EXATO: Fase 2 — `core/page_selection.py` (≥ 25 casos), `PyMuPDFReader`, `pdf_service`, estratégias Padrão/Concursos, fixtures sintéticas em `scripts/make_fixtures.py`.
+- Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 1 — Fundação e contratos (2026-10-11)
+- Concluído: pacotes, `models`, `exceptions`, `progress`, `config`, `ports` (Protocols), `utils/paths`, `utils/logging_config`, `pyproject.toml`, `scripts/check.sh|.ps1`, esqueleto de `make_fixtures.py`.
+- Evidência: `scripts/check.sh` → ruff check/format OK; compileall OK; mypy strict "no issues found in 16 source files"; `pytest` → `42 passed`.
+- Riscos/limitações: `check.ps1` não pôde ser executado (sem Windows).
+
 ### Fase 0 — Inspeção, planejamento e riscos (2026-10-11)
 - Concluído: git init; venv Python 3.12.13; dependências instaladas; documentos de controle.
 - Evidência: ver "Ambiente" abaixo.

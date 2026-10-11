@@ -1,0 +1,5 @@
+PyMuPDF>=1.28.2
+edge-tts>=7.2.8
+customtkinter>=6.0.0
+streamlit>=1.65.0
+mutagen>=1.48.1

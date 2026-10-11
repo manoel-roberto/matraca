@@ -22,10 +22,10 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 | RF-16 | Interface Web | Must | web/, app_web.py | tests/unit/test_web_logic.py | não iniciado | |
 | RF-17 | Velocidade da voz | Should | audio/, config.py | tests/unit/test_rate.py | não iniciado | |
 | RF-18 | `doctor` e CLI mínima | Should | cli.py, doctor.py | tests/unit/test_doctor.py | não iniciado | |
-| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | não iniciado | |
+| RNF-01 | Núcleo único; sem lógica nas UIs | Must | todo o projeto | tests/unit/test_architecture.py | parcial | tests/unit/test_architecture.py (5 testes) |
 | RNF-02 | Testes sem rede nem TTS real | Must | tests/ | suíte completa | não iniciado | |
-| RNF-03 | Type hints, docstrings pt-BR | Must | todo o projeto | mypy, ruff | não iniciado | |
-| RNF-04 | Segurança (sem eval, sem traversal, sem texto em logs) | Must | utils/, logging_config | tests/unit/test_security.py | não iniciado | |
+| RNF-03 | Type hints, docstrings pt-BR | Must | todo o projeto | mypy, ruff | parcial | mypy strict OK, ruff OK (fase 1) |
+| RNF-04 | Segurança (sem eval, sem traversal, sem texto em logs) | Must | utils/, logging_config | tests/unit/test_security.py | parcial | test_paths.py, test_core_basics.py (fase 1) |
 | RNF-05 | Aviso de privacidade (TTS remoto) | Must | README, UIs | revisão manual | não iniciado | |
 | RNF-06 | Linux e Windows | Should | scripts/, README | check.ps1 (não executável aqui) | não iniciado | |
 | RNF-07 | UI nunca congela | Must | gui/presenter, web/ | tests/unit/test_presenter.py | não iniciado | |

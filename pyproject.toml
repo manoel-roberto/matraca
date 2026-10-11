@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matraca"
+version = "0.1.0"
+description = "Matraca: transforma PDFs em áudio (MP3) para estudo de concursos"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PyMuPDF>=1.28.2",
+    "edge-tts>=7.2.8",
+    "customtkinter>=6.0.0",
+    "streamlit>=1.65.0",
+    "mutagen>=1.48.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["matraca*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers -m 'not slow and not manual'"
+markers = [
+    "unit: testes unitários rápidos, sem rede",
+    "integration: testes de integração com fakes, sem rede",
+    "slow: testes lentos (ex.: PDF de 500 páginas); rodar com -m slow",
+    "manual: testes manuais que usam o serviço TTS real; nunca rodam por padrão",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "S", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # acentos/travessões em português são intencionais
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311"]
+"scripts/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["matraca"]
+
+[[tool.mypy.overrides]]
+module = ["fitz", "pymupdf", "pymupdf.*", "customtkinter", "mutagen", "mutagen.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["matraca"]
+omit = ["matraca/gui/desktop_app.py"]

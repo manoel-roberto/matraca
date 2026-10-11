@@ -3,7 +3,7 @@ Objetivo: PDF → MP3 (pt-BR) para estudo de concursos. Núcleo único; UIs fina
 Fonte da verdade do escopo: `Prompt_Matraca_v2.md`.
 
 ## Comandos
-- Instalar: `uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements-dev.txt` (a partir da Fase 1)
+- Instalar: `uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements-dev.txt`
 - Checagem completa: scripts/check.sh | scripts/check.ps1
 - Testes: pytest -q  | lentos: pytest -m slow | manuais: pytest -m manual
 - Desktop: python app_desktop.py   Web: streamlit run app_web.py
@@ -24,7 +24,17 @@ Fonte da verdade do escopo: `Prompt_Matraca_v2.md`.
 Ver docs/STATUS_DO_PROJETO.md → "Retomada rápida".
 
 ## Mapa de módulos
-(preenchido a partir da Fase 1; ver docs/ARQUITETURA.md)
+| Pasta | Responsabilidade |
+|---|---|
+| `matraca/core/` | modelos, exceções, progresso, `ports.py` (Protocols), serviços (stdlib apenas) |
+| `matraca/config.py` | dataclasses de configuração imutáveis |
+| `matraca/utils/` | `paths` (sanitização, colisão, temporários), `logging_config` |
+| `matraca/pdf/` | adaptador PyMuPDF (único que importa fitz) |
+| `matraca/extractors/` | estratégias de extração |
+| `matraca/text/` | etapas puras de normalização |
+| `matraca/audio/` | chunking, edge-tts (adaptador), MP3 |
+| `matraca/gui/`, `matraca/web/` | interfaces finas |
+| `tests/` | unit, integration, golden, fixtures (sintéticas via scripts/make_fixtures.py) |
 
 ## Decisões vigentes (ADRs)
 - ADR-001 estrutura A.12.2 · ADR-002 Python 3.12 (min 3.11) · ADR-003 identificadores em inglês, docs pt-BR

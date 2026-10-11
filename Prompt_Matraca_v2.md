@@ -260,13 +260,18 @@ Base `MatracaError` (mensagem **amigável em pt-BR** + detalhe técnico separado
 
 ```python
 class PDFTextStrategy(Protocol):
-    name: str                      # identificador estável (ex.: "concursos")
-    display_name: str              # texto da UI
-    implemented: bool              # False => aparece como "em breve" e não selecionável
-    def extract(self, reader: PDFReader, pages: Sequence[int],
-                config: ExtractionConfig,
-                progress: ProgressCallback | None = None,
-                cancel: CancellationToken | None = None) -> ExtractionResult: ...
+    name: str  # identificador estável (ex.: "concursos")
+    display_name: str  # texto da UI
+    implemented: bool  # False => aparece como "em breve" e não selecionável
+
+    def extract(
+        self,
+        reader: PDFReader,
+        pages: Sequence[int],
+        config: ExtractionConfig,
+        progress: ProgressCallback | None = None,
+        cancel: CancellationToken | None = None,
+    ) -> ExtractionResult: ...
 ```
 
 Regras: a estratégia não conhece widgets, Streamlit nem CustomTkinter; recebe configuração por objeto; devolve estrutura tipada; sinaliza problemas via `warnings` e exceções do domínio; preserva número de página e ordem; processa **incrementalmente** (página a página/ em janelas) e faz uma passagem de amostragem para detectar ruído repetido (A.13.2) sem carregar o documento inteiro. O `registry.py` expõe as estratégias disponíveis; adicionar uma nova não exige alterar UI nem motor de áudio (teste que comprove isso com uma estratégia fake).
@@ -276,8 +281,9 @@ Regras: a estratégia não conhece widgets, Streamlit nem CustomTkinter; recebe 
 ```python
 class TTSBackend(Protocol):
     async def list_voices(self, locale: str = "pt-BR") -> list[VoiceInfo]: ...
-    async def synthesize_to_file(self, text: str, voice: str, rate: str,
-                                 dest: Path, cancel: CancellationToken | None) -> None: ...
+    async def synthesize_to_file(
+        self, text: str, voice: str, rate: str, dest: Path, cancel: CancellationToken | None
+    ) -> None: ...
 ```
 
 O `EdgeTTSBackend` implementa; testes usam `FakeTTSBackend` (gera bytes MP3 válidos mínimos ou simulados, falhas programáveis, latência simulada). **Antes de implementar**, inspecione a API real instalada do `edge-tts` (classe `Communicate`, métodos de `save`/`stream`, parâmetros `rate`/`volume`/`pitch`, função de listagem de vozes, chaves dos dicionários de voz) e registre em ADR o que foi verificado.
