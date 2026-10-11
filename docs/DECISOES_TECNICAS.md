@@ -78,9 +78,28 @@
 - Evidência verificada (execução real): `pymupdf.open(path)` lança `FileDataError` (conteúdo inválido), `EmptyFileError` (0 byte) e `FileNotFoundError`; `doc.needs_pass` indica senha; `page.get_text("dict", flags=...)` devolve `blocks` (tipo 0 = texto com `lines`/`spans`: `dir`, `bbox`, `size`, `color`, `alpha`, `flags`; tipo 1 = imagem); `page.get_image_info()` dá bbox de imagens; `page.find_tables()` existe (`.tables[i].bbox`). Flag usada: `TEXT_MEDIABOX_CLIP` (sem preservar ligaduras/espaços repetidos). Ordem nativa dos blocos é a do fluxo de conteúdo; ordenamos por colunas em `extractors/layout.py`. `pymupdf.TOOLS.mupdf_display_errors(False)` silencia avisos do MuPDF no stderr (efeito global restrito ao módulo `pdf/pymupdf_reader.py`).
 - Status: aceita
 
+## ADR-011 — Pipeline de normalização e decisões linguísticas
+- Data / Fase: 2026-10-11 / Fase 3
+- Contexto: A.13.3 exige ordem fixa de etapas puras, integridade de conteúdo e decisões linguísticas registradas.
+- Decisão: 
+  1. Artigos até 9 são ordinais ("Artigo primeiro" a "Artigo nono"); a partir de 10 são cardinais ("Artigo dez", "Artigo trinta e sete").
+  2. Parágrafos até 9 são ordinais ("parágrafo primeiro"); a partir de 10 são cardinais ("parágrafo dez"). "§ único" vira "parágrafo único".
+  3. Incisos são cardinais ("inciso dois", "inciso dez") em dispositivos jurídicos ("inciso II" ou "II -"). Numerais romanos em monarcas ("Rei João II"), séculos ("Século XX") e capítulos ("Capítulo II") não viram incisos.
+  4. Leis com barra são expandidas ("Lei 8.666/93" vira "Lei oito mil seiscentos e sessenta e seis, de noventa e três"). Casos ambíguos ("3/4", "2020/2021") são rigorosamente mantidos.
+  5. Datas no formato dd/mm/aaaa têm o 1º dia lido como ordinal ("primeiro de...") e anos expandidos.
+  6. Substrings como "Art." em "Martin", "Particular" ou "Cart." não sofrem substituição parcial.
+  7. Ordem estrita das 9 etapas puras fixada e testada por invariante.
+- Evidência verificada: 88 testes golden em `tests/golden/casos_normalizacao.tsv` aprovados com 100% de sucesso.
+- Status: aceita
+
+## ADR-012 — Conversão numérica com num2words 0.5.14 combinada com regras de domínio
+- Data / Fase: 2026-10-11 / Fase 3
+- Contexto: Avaliação entre biblioteca pronta e implementação própria (A.13.3).
+- Decisão: Adotar `num2words` com `lang='pt_BR'` para cardinais, ordinais e moeda, isolada dentro de `matraca/text/numbers.py`. Camada própria para casos específicos do domínio jurídico (artigos 1-9 ordinais / 10+ cardinais, leis com barra, moeda "um milhão de reais", separadores decimais e de milhar).
+- Alternativas consideradas: Implementação própria de cardinais até milhões (desnecessária com biblioteca instalada e verificada).
+- Evidência verificada: Testes unitários de números, moeda e percentual passando.
+- Status: aceita
+
 ## Decisões a tomar nas fases seguintes
-- ADR: ordem das páginas — crescente e deduplicada (Fase 2; fixa pelo prompt A.13.1).
-- ADR: limiar de repetição de ruído (padrão 40%) (Fase 2).
-- ADR: leitura de incisos (cardinal × ordinal), artigos ≤ 9 ordinal, siglas, `num2words` × própria (Fase 3).
 - ADR: concorrência, tamanho do chunk, `rate`, junção de MP3, inspeção do `edge-tts` (Fase 4).
 - ADR: MVP da GUI (Fase 5); estado Streamlit (Fase 6).

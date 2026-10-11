@@ -1,15 +1,19 @@
 # Status do projeto
 
 ## Retomada rápida (máx. 25 linhas)
-- Fase atual: 2 concluída (seleção de páginas e extração). Próxima: Fase 3.
-- Último commit/tag: `fase-2-concluida`
-- Funciona (verificado por teste): modelos, exceções, progresso/cancelamento, utils/paths, seleção de páginas (49 testes), PyMuPDFReader, PDFService, estratégias Default e Concursos com TOML configurável, remoção de ruído por múltiplos sinais, ordem de leitura em colunas, testes de integração sintéticos (143 testes no total).
-- Quebrado/pendente: normalização (Fase 3), áudio (Fase 4), UIs (Fases 5 e 6).
-- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-008 a ADR-010 registrados).
-- PRÓXIMO PASSO EXATO: Fase 3 — Pipeline de normalização para narração pt-BR (`text/`, golden tests com ≥ 80 casos, invariantes, `docs/EXEMPLOS_NORMALIZACAO.md`).
+- Fase atual: 3 concluída (pipeline de normalização). Próxima: Fase 4 (Motor de áudio).
+- Último commit/tag: `fase-3-concluida`
+- Funciona (verificado por teste): seleção de páginas, extração, estratégias, normalização pura pt-BR em 9 etapas (88 casos golden, 5 invariantes, text pipeline service com alinhamento 1:1 original x normalizado), 258 testes no total.
+- Quebrado/pendente: motor de áudio e TTS (Fase 4), UIs (Fases 5 e 6).
+- Decisões pendentes (com hipótese padrão): ver `docs/DECISOES_TECNICAS.md` (ADR-011 e ADR-012 registrados).
+- PRÓXIMO PASSO EXATO: Fase 4 — Motor de áudio (edge-tts, fake backend, chunking, mp3_writer atômico, job_service, CLI doctor).
 - Comandos para validar: `scripts/check.sh` (usa `.venv`).
 
 ## Histórico por fase
+### Fase 3 — Pipeline de normalização (2026-10-11)
+- Concluído: `matraca/text/` (linebreaks, numbers, dates, legal_terms, normalization), `matraca/core/text_pipeline.py`, `tests/golden/casos_normalizacao.tsv` (88 casos), invariantes, alinhamento de texto e métricas, `docs/EXEMPLOS_NORMALIZACAO.md`.
+- Evidência: `scripts/check.sh` → ruff OK, mypy OK (31 arquivos), compileall OK, pytest → `258 passed in 2.82s`. ADR-011 e ADR-012 registrados.
+- Riscos/limitações: nenhuma dependência de rede; casos de normalização cobrem 100% da tabela A.13.3 do prompt mestre.
 ### Fase 2 — Seleção de páginas e extração (2026-10-11)
 - Concluído: `core/page_selection.py`, `pdf/pymupdf_reader.py`, `core/pdf_service.py`, `extractors/layout.py`, `extractors/noise.py`, `extractors/base.py`, `extractors/default.py`, `extractors/estrategia_concursos.py`, `extractors/registry.py`, fixtures sintéticas completas em `scripts/make_fixtures.py`.
 - Evidência: `scripts/check.sh` → ruff OK, mypy OK (25 arquivos), compileall OK, pytest → `143 passed in 2.59s`. ADR-008, ADR-009 e ADR-010 registrados.

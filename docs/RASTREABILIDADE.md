@@ -12,8 +12,8 @@ Status: `não iniciado` / `parcial` / `concluído`. Atualizado ao fim de cada fa
 | RF-06 | Ordem de leitura (colunas) | Must | extractors/layout.py | tests/unit/test_noise_layout.py | concluído | fixtures 1 col, 2 col, título+2 col, caixa lateral; layout unitário |
 | RF-07 | Tabelas, figuras, fórmulas configuráveis | Must | extractors/ | tests/unit/test_extraction.py | concluído | test_noise_layout.py: marker/ignore/linear e figuras (fórmulas preservadas) |
 | RF-08 | Detecção de páginas sem texto | Must | pdf/, extractors/ | tests/unit/test_extraction.py | concluído | somente_imagem e pagina_em_branco -> PDFSemTextoError; aviso por página |
-| RF-09 | Pipeline de normalização pt-BR | Must | text/ | tests/golden, tests/unit/test_normalization*.py | não iniciado | |
-| RF-10 | Prévia bruto × normalizado + estatísticas | Should | core/job_service.py, gui/, web/ | tests/integration | não iniciado | |
+| RF-09 | Pipeline de normalização pt-BR | Must | text/, core/text_pipeline.py | tests/unit/test_normalization_golden.py, test_normalization_invariants.py | concluído | 88 testes golden (100%), 5 invariantes, revisão manual de 20 casos |
+| RF-10 | Prévia bruto × normalizado + estatísticas | Should | core/text_pipeline.py, job_service.py, gui/, web/ | tests/unit/test_text_pipeline.py, tests/integration | parcial | TextPipelineService gera NarrationText com alinhamento 1:1 e estatísticas |
 | RF-11 | Vozes pt-BR dinâmicas | Must | audio/edge_tts_client.py | tests/unit/test_voices.py | não iniciado | |
 | RF-12 | Segmentação segura | Must | audio/chunking.py | tests/unit/test_chunking.py | não iniciado | |
 | RF-13 | Geração assíncrona com progresso/cancelamento | Must | core/audio_service.py, job_service.py | tests/integration/test_job_service.py | não iniciado | |

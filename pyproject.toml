@@ -51,7 +51,7 @@ strict = true
 files = ["matraca"]
 
 [[tool.mypy.overrides]]
-module = ["fitz", "pymupdf", "pymupdf.*", "customtkinter", "mutagen", "mutagen.*"]
+module = ["fitz", "pymupdf", "pymupdf.*", "customtkinter", "mutagen", "mutagen.*", "num2words", "num2words.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]

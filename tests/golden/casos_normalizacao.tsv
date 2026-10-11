@@ -1,0 +1,88 @@
+entrada	saida_esperada	observacao
+Art. 5º, inciso II	Artigo quinto, inciso dois	Artigo ordinal até 9 e inciso cardinal
+Art. 37, caput	Artigo trinta e sete, caput	Artigo cardinal a partir de 10
+Arts. 5º e 6º	Artigos quinto e sexto	Plural de artigos até 9
+§ 1º	parágrafo primeiro	Parágrafo ordinal até 9
+§ 2º	parágrafo segundo	Parágrafo ordinal 2
+§ 10	parágrafo dez	Parágrafo cardinal a partir de 10
+§ 1º do art. 7º	parágrafo primeiro do Artigo sétimo	Referência composta
+§ único	parágrafo único	Parágrafo único
+§§ 1º e 2º	parágrafos primeiro e segundo	Plural de parágrafos
+Lei 8.666/93	Lei oito mil seiscentos e sessenta e seis, de noventa e três	Lei com barra e ano curto
+Lei nº 14.133, de 1º de abril de 2021	Lei número catorze mil cento e trinta e três, de primeiro de abril de dois mil e vinte e um	Lei completa com data por extenso
+Decreto-Lei 200/67	Decreto-Lei duzentos, de sessenta e sete	Decreto-Lei com barra
+10%	dez por cento	Porcentagem inteira
+2,5%	dois vírgula cinco por cento	Porcentagem decimal
+R$ 1.250,00	mil duzentos e cinquenta reais	Moeda com milhar
+R$ 0,50	cinquenta centavos	Moeda apenas centavos
+01/02/2020	primeiro de fevereiro de dois mil e vinte	Data completa padrão dd/mm/aaaa
+3/4	3/4	Caso ambíguo mantido (fração)
+2020/2021	2020/2021	Caso ambíguo mantido (período/exercício)
+Martin	Martin	Caso negativo: Art. em palavra
+Particular	Particular	Caso negativo: art em palavra
+Cart.	Cart.	Caso negativo: abreviação de cartório não vira artigo
+Rei João II	Rei João segundo	Caso negativo: numeral romano não é inciso
+Século XX	Século vinte	Caso negativo: século não é inciso
+Capítulo II	Capítulo segundo	Caso negativo: capítulo não é inciso
+II - homens e mulheres	inciso dois - homens e mulheres	Inciso no início de linha
+c/c o art. 10	combinado com o Artigo dez	Abreviação c/c
+p. ex. na lei	por exemplo na lei	Abreviação p. ex.
+nº 123	número 123	Abreviação nº
+n.º 456	número 456	Abreviação n.º
+1.234.567	um milhão duzentos e trinta e quatro mil quinhentos e sessenta e sete	Número com separador de milhar
+1.234,56	mil duzentos e trinta e quatro vírgula cinquenta e seis	Decimal com separador de milhar
+0,75	zero vírgula setenta e cinco	Decimal menor que 1
+100%	cem por cento	Cem por cento
+0,5%	zero vírgula cinco por cento	Meio por cento
+R$ 1,00	um real	Moeda no singular
+R$ 2,00	dois reais	Moeda no plural
+R$ 1.000.000,00	um milhão de reais	Moeda um milhão
+Art. 1º	Artigo primeiro	Artigo 1 ordinal
+Art. 2º	Artigo segundo	Artigo 2 ordinal
+Art. 3º	Artigo terceiro	Artigo 3 ordinal
+Art. 4º	Artigo quarto	Artigo 4 ordinal
+Art. 6º	Artigo sexto	Artigo 6 ordinal
+Art. 7º	Artigo sétimo	Artigo 7 ordinal
+Art. 8º	Artigo oitavo	Artigo 8 ordinal
+Art. 9º	Artigo nono	Artigo 9 ordinal
+Art. 10	Artigo dez	Artigo 10 cardinal
+Art. 11	Artigo onze	Artigo 11 cardinal
+Art. 99	Artigo noventa e nove	Artigo 99 cardinal
+Art. 100	Artigo cem	Artigo 100 cardinal
+§ 3º	parágrafo terceiro	Parágrafo 3 ordinal
+§ 4º	parágrafo quarto	Parágrafo 4 ordinal
+§ 5º	parágrafo quinto	Parágrafo 5 ordinal
+§ 6º	parágrafo sexto	Parágrafo 6 ordinal
+§ 7º	parágrafo sétimo	Parágrafo 7 ordinal
+§ 8º	parágrafo oitavo	Parágrafo 8 ordinal
+§ 9º	parágrafo nono	Parágrafo 9 ordinal
+§ 11	parágrafo onze	Parágrafo 11 cardinal
+§ 20	parágrafo vinte	Parágrafo 20 cardinal
+inciso I	inciso um	Inciso 1
+inciso III	inciso três	Inciso 3
+inciso IV	inciso quatro	Inciso 4
+inciso V	inciso cinco	Inciso 5
+inciso VI	inciso seis	Inciso 6
+inciso VII	inciso sete	Inciso 7
+inciso VIII	inciso oito	Inciso 8
+inciso IX	inciso nove	Inciso 9
+inciso X	inciso dez	Inciso 10
+inc. I	inciso um	Abreviação inc.
+al. a	alínea a	Abreviação al.
+alínea b	alínea b	Alínea preservada
+Portaria 123/2020	Portaria cento e vinte e três, de dois mil e vinte	Portaria com barra
+Resolução 45/99	Resolução quarenta e cinco, de noventa e nove	Resolução com barra
+05/10/1988	cinco de outubro de mil novecentos e oitenta e oito	Data da CF/88
+15/11/1889	quinze de novembro de mil oitocentos e oitenta e nove	Data da Proclamação
+31/12/2023	trinta e um de dezembro de dois mil e vinte e três	Último dia do ano
+CF/88	Constituição Federal de oitenta e oito	Sigla CF/88
+STF	S T F	Sigla STF
+STJ	S T J	Sigla STJ
+OAB	O A B	Sigla OAB
+CLT	C L T	Sigla CLT
+CPC	C P C	Sigla CPC
+pala-\nvra	palavra	Hifenização quebrada em linha
+ex-\npresidente	ex-presidente	Hifenização de prefixo ex mantida
+anti-\ninflamatório	anti-inflamatório	Hifenização de prefixo anti mantida
+Texto com “aspas” e ‘aspas’	Texto com "aspas" e 'aspas'	Normalização de aspas
+Texto com  espaços   duplos	Texto com espaços duplos	Limpeza de múltiplos espaços
