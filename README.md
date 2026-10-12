@@ -24,19 +24,74 @@ O Matraca remove cabeçalhos, rodapés e ruídos de página repetitivos (com sup
 
 ---
 
-## 📋 Pré-requisitos
+## 📦 Download dos Executáveis Prontos (Windows & Linux)
 
-- **Python:** 3.11 ou 3.12 instalado.
-- **Conexão com a Internet:** Necessária durante a etapa de síntese de voz para consulta às vozes remotas.
-- **Sistema Operacional:** Linux (Ubuntu, Debian, Fedora, Arch) ou Windows 10/11.
+Se você deseja apenas utilizar o Matraca sem precisar instalar Python ou configurar ambiente de desenvolvimento, baixe os executáveis pré-compilados diretamente da nossa página de lançamentos:
+
+👉 **[Acessar Última Versão (GitHub Releases)](https://github.com/manoel-roberto/matraca/releases/latest)**
+
+| Sistema Operacional | Arquivo | Como Executar |
+| :--- | :--- | :--- |
+| **Linux (x86_64)** | `matraca-desktop` | [Instruções para Linux](#-como-executar-a-versão-desktop-no-linux) |
+| **Windows 10/11 (x86_64)** | `matraca-desktop.exe` | [Instruções para Windows](#-como-executar-a-versão-desktop-no-windows) |
 
 ---
 
-## 🛠️ Instalação Passo a Passo
+### 🐧 Como Executar a Versão Desktop no Linux
+
+No Linux, executáveis baixados da internet não possuem permissão de execução ativada por padrão. Siga os passos abaixo:
+
+#### 1. Conceder Permissão de Execução
+
+**Via Terminal (Recomendado):**
+Abra o terminal na pasta onde baixou o arquivo (geralmente `Downloads`) e execute:
+```bash
+chmod +x matraca-desktop
+```
+
+**Via Interface Gráfica:**
+1. Abra o gerenciador de arquivos (Nautilus, Dolphin, Thunar, etc.).
+2. Clique com o botão direito no arquivo `matraca-desktop` e selecione **Propriedades**.
+3. Na aba **Permissões**, marque a opção **"Permitir execução do arquivo como programa"** (ou *"Allow executing file as program"*).
+
+#### 2. Executar a Aplicação
+
+- **Pelo Terminal:**
+  ```bash
+  ./matraca-desktop
+  ```
+- **Pelo Gerenciador de Arquivos:**
+  Dê dois cliques sobre o arquivo `matraca-desktop`.
+
+> [!NOTE]
+> O executável já contém o interpretador Python, o CustomTkinter e todas as dependências empacotadas. Você precisa apenas de um ambiente de desktop gráfico comum (GNOME, KDE, XFCE, etc., sob X11 ou Wayland/XWayland).
+
+---
+
+### 🪟 Como Executar a Versão Desktop no Windows
+
+#### 1. Executar o Arquivo
+Basta dar dois cliques no executável baixado: `matraca-desktop.exe`.
+
+#### 2. Aviso do Windows SmartScreen (Primeira Execução)
+Por se tratar de um binário novo gerado via compilação automatizada (GitHub Actions) sem certificado corporativo pago, o Windows Defender SmartScreen pode exibir um aviso protetor:
+
+1. Na janela azul de aviso, clique no link **"Mais informações"** (*"More info"*).
+2. Em seguida, clique no botão **"Executar assim mesmo"** (*"Run anyway"*).
+
+---
+
+## 📋 Executando a Partir do Código-Fonte (Desenvolvedores)
+
+Se preferir rodar o projeto diretamente com o Python e código-fonte:
+
+- **Python:** 3.11 ou 3.12 instalado.
+- **Conexão com a Internet:** Necessária durante a etapa de síntese de voz para consulta às vozes neurais.
+- **Sistema Operacional:** Linux ou Windows 10/11.
 
 ### 1. Clonar o repositório
 ```bash
-git clone https://github.com/usuario/matraca.git
+git clone https://github.com/manoel-roberto/matraca.git
 cd matraca
 ```
 
@@ -87,10 +142,15 @@ streamlit run app_web.py
 Acesse `http://localhost:8501` no seu navegador. Você poderá enviar um PDF (limite de 50 MB), inspecionar as páginas, visualizar a prévia do texto normalizado e baixar o MP3 gerado.
 
 ### 🖥️ 2. Interface Desktop (CustomTkinter)
-Aplicação desktop nativa com janela fluida e moderna:
-```bash
-python app_desktop.py
-```
+Aplicação desktop nativa com janela fluida, tema escuro e prévia interativa:
+
+- **Com o executável baixado da Release:**
+  - **Linux:** execute `./matraca-desktop` (consulte os [detalhes de permissões](#-como-executar-a-versão-desktop-no-linux)).
+  - **Windows:** dê dois cliques em `matraca-desktop.exe`.
+- **A partir do código-fonte:**
+  ```bash
+  python app_desktop.py
+  ```
 
 ### ⌨️ 3. Linha de Comando (CLI) e Diagnóstico
 
