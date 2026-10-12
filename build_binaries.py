@@ -46,8 +46,20 @@ def main() -> None:
         "mutagen",
         "--hidden-import",
         "num2words",
-        str(root_dir / "app_desktop.py"),
     ]
+
+    # Inclui bibliotecas dinâmicas e dados de Tcl/Tk quando disponíveis no ambiente
+    python_lib_dir = Path(sys.executable).resolve().parent.parent / "lib"
+    if python_lib_dir.exists():
+        for so_file in python_lib_dir.glob("libtcl*.so*"):
+            args.extend(["--add-binary", f"{so_file}{sep}."])
+        for so_file in python_lib_dir.glob("libtk*.so*"):
+            args.extend(["--add-binary", f"{so_file}{sep}."])
+        for data_dir in python_lib_dir.iterdir():
+            if data_dir.is_dir() and (data_dir.name.startswith("tcl") or data_dir.name.startswith("tk")):
+                args.extend(["--add-data", f"{data_dir}{sep}{data_dir.name}"])
+
+    args.append(str(root_dir / "app_desktop.py"))
 
     print("Executando build do executável stand-alone...")
     print(f"Argumentos: {' '.join(args)}")
