@@ -10,6 +10,7 @@ htmlcov/
 build/
 dist/
 *.part
+*.spec
 *.mp3
 !tests/fixtures/*.mp3
 logs/

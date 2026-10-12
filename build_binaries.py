@@ -15,7 +15,9 @@ def main() -> None:
 
     # No Windows o separador do --add-data é ';', no Linux/macOS é ':'
     sep = ";" if sys.platform == "win32" else ":"
-    add_data_arg = f"{ctk_path}{sep}customtkinter/"
+    ctk_data_arg = f"{ctk_path}{sep}customtkinter/"
+    toml_path = root_dir / "matraca" / "extractors" / "concursos_patterns.toml"
+    toml_data_arg = f"{toml_path}{sep}matraca/extractors/"
 
     args = [
         "--clean",
@@ -25,7 +27,9 @@ def main() -> None:
         "--name",
         "matraca-desktop",
         "--add-data",
-        add_data_arg,
+        ctk_data_arg,
+        "--add-data",
+        toml_data_arg,
         "--hidden-import",
         "customtkinter",
         "--hidden-import",

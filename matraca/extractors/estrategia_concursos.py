@@ -17,13 +17,38 @@ from matraca.extractors.noise import NoisePattern
 
 _PATTERNS_FILE = "concursos_patterns.toml"
 
+_DEFAULT_FALLBACK_TOML = """# Padrões default da estratégia Concursos
+[licenca]
+label = "marca_licenca"
+patterns = [
+  '\\b(?:licenciad[oa]|exclusiv[oa])\\s+(?:para|de)\\b',
+  '\\bCPF\\b\\D{0,5}\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b',
+  '\\b\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}\\b',
+]
+
+[curso]
+label = "cabecalho_curso"
+patterns = [
+  '(?:https?://)?(?:www\\.)?estrategia(?:concursos)?\\.[a-z.]+\\S*',
+]
+
+[bancas]
+names = ["CESPE", "CEBRASPE", "FCC", "FGV", "VUNESP", "CESGRANRIO", "IBFC", "IDECAN", "QUADRIX", "FUNDATEC", "AOCP", "IADES", "CONSULPLAN", "FUNCAB"]
+"""
+
 
 def load_pattern_config(path: Path | None = None) -> dict[str, object]:
     """Carrega o TOML de padrões (do pacote, ou de `path` se informado)."""
     if path is not None:
         return tomllib.loads(path.read_text(encoding="utf-8"))
-    text = resources.files("matraca.extractors").joinpath(_PATTERNS_FILE).read_text("utf-8")
-    return tomllib.loads(text)
+    try:
+        text = resources.files("matraca.extractors").joinpath(_PATTERNS_FILE).read_text("utf-8")
+        return tomllib.loads(text)
+    except Exception:
+        fallback_file = Path(__file__).parent / _PATTERNS_FILE
+        if fallback_file.exists():
+            return tomllib.loads(fallback_file.read_text(encoding="utf-8"))
+        return tomllib.loads(_DEFAULT_FALLBACK_TOML)
 
 
 def _string_list(value: object) -> list[str]:
