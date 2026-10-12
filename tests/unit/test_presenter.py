@@ -35,6 +35,8 @@ class FakeDesktopView:
         self.success_result: JobResult | None = None
         self.error_messages: list[str] = []
         self.output_path: Path | None = None
+        self.thumbnails: list[tuple[int, bytes]] | None = None
+        self.total_selected: int = 0
 
     def set_state(self, state: UIState) -> None:
         self.states.append(state)
@@ -51,6 +53,14 @@ class FakeDesktopView:
 
     def show_preview(self, preview: NarrationText) -> None:
         self.preview_result = preview
+
+    def show_thumbnails(
+        self,
+        thumbnails: list[tuple[int, bytes]],
+        total_selected: int,
+    ) -> None:
+        self.thumbnails = thumbnails
+        self.total_selected = total_selected
 
     def show_success(self, result: JobResult) -> None:
         self.success_result = result
@@ -216,3 +226,50 @@ def test_presenter_nova_tentativa_apos_falha(tmp_path: Path) -> None:
 
     assert view.success_result is not None
     assert UIState.DONE in view.states
+
+
+def test_presenter_visualize_pages_sucesso() -> None:
+    presenter, view = _make_presenter()
+    pdf_valido = _FIXTURES_DIR / "uma_coluna.pdf"
+    presenter.on_pdf_selected(pdf_valido)
+
+    presenter.on_visualize_pages_requested("1-2")
+
+    for _ in range(60):
+        presenter.poll_events()
+        if view.thumbnails is not None:
+            break
+        time.sleep(0.05)
+
+    assert view.thumbnails is not None
+    assert len(view.thumbnails) == 2
+    assert view.total_selected == 2
+    assert view.thumbnails[0][0] == 1
+    assert view.thumbnails[1][0] == 2
+    assert isinstance(view.thumbnails[0][1], bytes)
+    assert view.thumbnails[0][1].startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_presenter_visualize_pages_sem_pdf_erro() -> None:
+    presenter, view = _make_presenter()
+    presenter.on_visualize_pages_requested("1")
+    assert len(view.error_messages) == 1
+    assert "Selecione um arquivo PDF" in view.error_messages[0]
+
+
+def test_presenter_visualize_pages_limita_max_thumbnails() -> None:
+    presenter, view = _make_presenter()
+    pdf_valido = _FIXTURES_DIR / "uma_coluna.pdf"  # tem 3 páginas
+    presenter.on_pdf_selected(pdf_valido)
+
+    presenter.on_visualize_pages_requested("1-3", max_thumbnails=2)
+
+    for _ in range(60):
+        presenter.poll_events()
+        if view.thumbnails is not None:
+            break
+        time.sleep(0.05)
+
+    assert view.thumbnails is not None
+    assert len(view.thumbnails) == 2
+    assert view.total_selected == 3

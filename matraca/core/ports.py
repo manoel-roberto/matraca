@@ -47,6 +47,10 @@ class PDFReader(Protocol):
         """Lê uma página (1-based) sob demanda; detecta tabelas apenas se `with_tables`."""
         ...
 
+    def render_page_thumbnail(self, number: int, *, max_dimension: int = 300) -> bytes:
+        """Renderiza a página (1-based) como miniatura PNG (bytes) com dimensão máxima limitada."""
+        ...
+
 
 PDFReaderFactory = Callable[[Path], PDFReader]
 """Abre um PDF; lança `PDFInvalidoError`/`PDFProtegidoError` quando apropriado."""

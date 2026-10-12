@@ -26,6 +26,7 @@ from matraca.core.models import (
 )
 from matraca.core.page_selection import parse_page_selection
 from matraca.core.progress import CancellationToken, ProgressEvent
+from matraca.pdf.pymupdf_reader import PyMuPDFReader
 from matraca.web.page_logic import (
     DEFAULT_MAX_UPLOAD_MB,
     UploadValidationError,
@@ -38,6 +39,57 @@ from matraca.web.page_logic import (
 )
 
 _log = logging.getLogger(__name__)
+
+
+@st.cache_data(show_spinner=False)
+def get_page_thumbnail_cached(
+    pdf_path_str: str,
+    page_number: int,
+    max_dimension: int = 250,
+) -> bytes:
+    """Renderiza a miniatura de uma página do PDF com cache estrito do Streamlit."""
+    reader = PyMuPDFReader(Path(pdf_path_str))
+    with reader:
+        return reader.render_page_thumbnail(page_number, max_dimension=max_dimension)
+
+
+def render_pages_thumbnail_viewer(
+    pdf_path: Path,
+    pages: list[int],
+    max_thumbnails: int = 20,
+) -> None:
+    """Exibe o expander com grid de miniaturas para confirmação visual das páginas."""
+    with st.expander("Páginas Selecionadas (Visualização)", expanded=True):
+        if not pages:
+            st.info("Nenhuma página selecionada para visualização.")
+            return
+
+        to_show = pages[:max_thumbnails]
+        total = len(pages)
+        st.caption(
+            f"Confirmação visual: exibindo **{len(to_show)}** de "
+            f"**{total}** página(s) selecionada(s)."
+        )
+
+        cols = st.columns(4)
+        for idx, page_num in enumerate(to_show):
+            col = cols[idx % 4]
+            with col:
+                try:
+                    thumb_bytes = get_page_thumbnail_cached(str(pdf_path), page_num)
+                    st.image(
+                        thumb_bytes,
+                        caption=f"Página {page_num}",
+                        use_container_width=True,
+                    )
+                except Exception as exc:
+                    st.error(f"Pág. {page_num}: {exc}")
+
+        if total > max_thumbnails:
+            st.info(
+                f"➕ **+ {total - max_thumbnails} página(s)** selecionada(s) "
+                f"além das {max_thumbnails} exibidas acima."
+            )
 
 
 def _init_session_state() -> None:
@@ -203,6 +255,10 @@ def main() -> None:
     except Exception as exc:
         st.error(f"Seleção de páginas inválida: {exc}")
         valid_pages = False
+
+    # Visualizador Dinâmico de Páginas Selecionadas (Dashboard Interativo)
+    if valid_pages:
+        render_pages_thumbnail_viewer(pdf_path, list(page_sel.pages), max_thumbnails=20)
 
     col_btn1, col_btn2 = st.columns([1, 1])
 

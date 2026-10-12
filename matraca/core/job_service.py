@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from matraca.config import ExtractionConfig
@@ -56,6 +56,26 @@ class JobService:
     def inspect_pdf(self, pdf_path: Path) -> PDFInfo:
         """Inspeciona o PDF e devolve metadados e total de páginas."""
         return self.pdf_service.inspect(pdf_path)
+
+    def render_page_thumbnail(
+        self,
+        pdf_path: Path,
+        number: int,
+        *,
+        max_dimension: int = 300,
+    ) -> bytes:
+        """Renderiza a miniatura de uma página específica de um PDF."""
+        return self.pdf_service.render_page_thumbnail(pdf_path, number, max_dimension=max_dimension)
+
+    def render_thumbnails(
+        self,
+        pdf_path: Path,
+        pages: Sequence[int],
+        *,
+        max_dimension: int = 300,
+    ) -> dict[int, bytes]:
+        """Renderiza miniaturas para uma lista de páginas com alta eficiência."""
+        return self.pdf_service.render_thumbnails(pdf_path, pages, max_dimension=max_dimension)
 
     def get_preview(
         self,

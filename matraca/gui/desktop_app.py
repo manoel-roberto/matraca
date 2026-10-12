@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import logging
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
+from PIL import Image
 
 from matraca.audio.edge_tts_client import EdgeTTSBackend
 from matraca.audio.mp3_writer import DirectMp3Joiner
@@ -35,6 +37,7 @@ class DesktopApp(ctk.CTk):
 
         self.presenter = presenter or self._build_default_presenter()
         self._voices_cache: list[VoiceInfo] = []
+        self._thumbnail_images: list[ctk.CTkImage] = []
 
         self._init_ui()
         self.presenter.init_voices()
@@ -90,16 +93,54 @@ class DesktopApp(ctk.CTk):
         pages_frame.grid_columnconfigure(0, weight=1)
 
         self.pages_entry = ctk.CTkEntry(pages_frame, placeholder_text="Ex: 1, 3, 5-10")
-        self.pages_entry.grid(row=0, column=0, sticky="ew", padx=(8, 16))
+        self.pages_entry.grid(row=0, column=0, sticky="ew", padx=(8, 8))
 
         self.chk_all_pages_var = ctk.BooleanVar(value=True)
         self.chk_all_pages = ctk.CTkCheckBox(
             pages_frame,
-            text="Todas as páginas",
+            text="Todas",
             variable=self.chk_all_pages_var,
             command=self._on_all_pages_toggle,
         )
-        self.chk_all_pages.grid(row=0, column=1, sticky="e")
+        self.chk_all_pages.grid(row=0, column=1, padx=(4, 8))
+
+        self.btn_visualize = ctk.CTkButton(
+            pages_frame,
+            text="Visualizar Seleção",
+            width=130,
+            command=self._on_visualize_click,
+            fg_color="gray40",
+            hover_color="gray30",
+        )
+        self.btn_visualize.grid(row=0, column=2, padx=4)
+
+        row += 1
+        # Visualizador de Páginas Selecionadas (Miniaturas)
+        self.visualizer_frame = ctk.CTkFrame(container)
+        self.visualizer_frame.grid(row=row, column=0, columnspan=3, sticky="ew", pady=(4, 10))
+        self.visualizer_frame.grid_columnconfigure(0, weight=1)
+
+        self.lbl_visualizer_title = ctk.CTkLabel(
+            self.visualizer_frame,
+            text="Visualizador de Páginas Selecionadas (Miniaturas)",
+            font=ctk.CTkFont(weight="bold", size=13),
+        )
+        self.lbl_visualizer_title.grid(row=0, column=0, sticky="w", padx=10, pady=(6, 2))
+
+        self.thumbnails_scroll = ctk.CTkScrollableFrame(
+            self.visualizer_frame,
+            orientation="horizontal",
+            height=200,
+            fg_color="transparent",
+        )
+        self.thumbnails_scroll.grid(row=1, column=0, sticky="ew", padx=6, pady=(2, 6))
+
+        self.lbl_no_thumbnails = ctk.CTkLabel(
+            self.thumbnails_scroll,
+            text="Clique em 'Visualizar Seleção' para exibir as miniaturas das páginas.",
+            text_color="gray",
+        )
+        self.lbl_no_thumbnails.pack(pady=40, padx=20)
 
         row += 1
         # 3. Estratégia de Extração
@@ -250,6 +291,10 @@ class DesktopApp(ctk.CTk):
         strat = self._get_strategy_name()
         self.presenter.on_preview_requested(pages_expr=pages_expr, strategy_name=strat)
 
+    def _on_visualize_click(self) -> None:
+        pages_expr = self._get_pages_expr()
+        self.presenter.on_visualize_pages_requested(pages_expr=pages_expr, max_thumbnails=20)
+
     def _on_start_click(self) -> None:
         pages_expr = self._get_pages_expr()
         voice = self.combo_voice.get().split()[0]
@@ -283,6 +328,7 @@ class DesktopApp(ctk.CTk):
             UIState.FINALIZING,
         }
         self.btn_browse.configure(state="disabled" if is_working else "normal")
+        self.btn_visualize.configure(state="disabled" if is_working else "normal")
         self.btn_preview.configure(state="disabled" if is_working else "normal")
         self.btn_start.configure(state="disabled" if is_working else "normal")
         self.btn_cancel.configure(state="normal" if is_working else "disabled")
@@ -353,6 +399,68 @@ class DesktopApp(ctk.CTk):
             stats_lines.append(f" - {w}")
         stats_box.insert("1.0", "\n".join(stats_lines))
         stats_box.configure(state="disabled")
+
+    def show_thumbnails(
+        self,
+        thumbnails: list[tuple[int, bytes]],
+        total_selected: int,
+    ) -> None:
+        """Renderiza as miniaturas das páginas no painel visual da interface Desktop."""
+        for child in self.thumbnails_scroll.winfo_children():
+            child.destroy()
+
+        self._thumbnail_images.clear()
+
+        if not thumbnails:
+            lbl = ctk.CTkLabel(
+                self.thumbnails_scroll,
+                text="Nenhuma página encontrada para visualização.",
+                text_color="gray",
+            )
+            lbl.pack(pady=40, padx=20)
+            return
+
+        for page_num, png_data in thumbnails:
+            card = ctk.CTkFrame(self.thumbnails_scroll, corner_radius=6)
+            card.pack(side="left", padx=8, pady=6)
+
+            pil_img = Image.open(io.BytesIO(png_data))
+            aspect = pil_img.width / max(1, pil_img.height)
+            display_h = 130
+            display_w = max(40, int(display_h * aspect))
+
+            ctk_img = ctk.CTkImage(
+                light_image=pil_img,
+                dark_image=pil_img,
+                size=(display_w, display_h),
+            )
+            self._thumbnail_images.append(ctk_img)
+
+            img_label = ctk.CTkLabel(card, image=ctk_img, text="")
+            img_label.pack(padx=6, pady=(6, 2))
+
+            num_label = ctk.CTkLabel(
+                card,
+                text=f"Página {page_num}",
+                font=ctk.CTkFont(size=11, weight="bold"),
+            )
+            num_label.pack(padx=6, pady=(0, 6))
+
+        if total_selected > len(thumbnails):
+            extra = total_selected - len(thumbnails)
+            card_extra = ctk.CTkFrame(
+                self.thumbnails_scroll,
+                corner_radius=6,
+                fg_color=("gray80", "gray25"),
+            )
+            card_extra.pack(side="left", padx=8, pady=6, fill="y")
+
+            lbl_extra = ctk.CTkLabel(
+                card_extra,
+                text=f"+ {extra} página(s)\nselecionada(s)",
+                font=ctk.CTkFont(size=12, weight="bold"),
+            )
+            lbl_extra.pack(padx=16, pady=40)
 
     def show_success(self, result: JobResult) -> None:
         kb = result.size_bytes / 1024

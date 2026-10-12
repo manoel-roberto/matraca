@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from matraca.core.exceptions import PDFInvalidoError
@@ -45,3 +46,21 @@ class PDFService:
                 has_text_layer=has_text,
                 metadata=reader.metadata(),
             )
+
+    def render_page_thumbnail(self, path: Path, number: int, *, max_dimension: int = 300) -> bytes:
+        """Renderiza a miniatura de uma página específica de um PDF."""
+        with self.open(path) as reader:
+            return reader.render_page_thumbnail(number, max_dimension=max_dimension)
+
+    def render_thumbnails(
+        self,
+        path: Path,
+        pages: Sequence[int],
+        *,
+        max_dimension: int = 300,
+    ) -> dict[int, bytes]:
+        """Renderiza miniaturas para uma sequência de páginas abrindo o documento uma única vez."""
+        with self.open(path) as reader:
+            return {
+                num: reader.render_page_thumbnail(num, max_dimension=max_dimension) for num in pages
+            }

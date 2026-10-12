@@ -70,6 +70,9 @@ class FakeReader:
     def read_page(self, number: int, *, with_tables: bool = False) -> RawPage:
         return self._pages[number]
 
+    def render_page_thumbnail(self, number: int, *, max_dimension: int = 300) -> bytes:
+        return b"\x89PNG\r\n\x1a\nfake_thumb"
+
 
 # --- Ruído: sinais isolados nunca removem ---------------------------------------------------
 

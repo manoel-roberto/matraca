@@ -169,3 +169,16 @@ def test_streamlit_app_test_initialization() -> None:
     assert not at.exception
     # Deve conter o título principal e o file uploader
     assert any("Matraca" in str(title.value) for title in at.title)
+
+
+def test_get_page_thumbnail_cached() -> None:
+    from matraca.web.streamlit_app import get_page_thumbnail_cached
+
+    fixture_pdf = _FIXTURES_DIR / "uma_coluna.pdf"
+    thumb1 = get_page_thumbnail_cached(str(fixture_pdf), 1, max_dimension=200)
+    assert isinstance(thumb1, bytes)
+    assert thumb1.startswith(b"\x89PNG\r\n\x1a\n")
+
+    # Segunda chamada recupera do cache estrito do Streamlit sem erro
+    thumb2 = get_page_thumbnail_cached(str(fixture_pdf), 1, max_dimension=200)
+    assert thumb1 == thumb2

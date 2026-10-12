@@ -258,3 +258,23 @@ def test_estatisticas_e_nome_da_estrategia(pdfs: dict[str, Path]) -> None:
     assert result.strategy_name == "concursos"
     assert result.stats["pages"] == 3
     assert result.stats["chars"] == result.total_chars
+
+
+def test_render_page_thumbnail_retorna_png_valido(pdfs: dict[str, Path]) -> None:
+    with PyMuPDFReader(pdfs["uma_coluna"]) as reader:
+        thumb = reader.render_page_thumbnail(1, max_dimension=200)
+        assert isinstance(thumb, bytes)
+        assert thumb.startswith(b"\x89PNG\r\n\x1a\n")
+        assert len(thumb) > 100
+
+        with pytest.raises(PDFInvalidoError, match="fora do documento"):
+            reader.render_page_thumbnail(999)
+
+
+def test_pdf_service_render_thumbnails_lote(pdfs: dict[str, Path]) -> None:
+    service = PDFService(PyMuPDFReader)
+    thumbs = service.render_thumbnails(pdfs["uma_coluna"], [1, 2], max_dimension=150)
+    assert set(thumbs.keys()) == {1, 2}
+    for data in thumbs.values():
+        assert isinstance(data, bytes)
+        assert data.startswith(b"\x89PNG\r\n\x1a\n")

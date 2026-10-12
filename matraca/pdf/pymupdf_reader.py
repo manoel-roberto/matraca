@@ -97,6 +97,25 @@ class PyMuPDFReader:
             has_full_page_image=full_image,
         )
 
+    def render_page_thumbnail(self, number: int, *, max_dimension: int = 300) -> bytes:
+        """Renderiza uma página como miniatura leve em formato PNG."""
+        if not 1 <= number <= self.page_count:
+            raise PDFInvalidoError(f"Página {number} fora do documento.")
+        try:
+            page = self._doc[number - 1]
+            rect = page.rect
+            max_side = max(float(rect.width), float(rect.height))
+            zoom = min(1.0, max_dimension / max_side) if max_side > 0 else 0.5
+            zoom = max(0.1, zoom)
+            mat = pymupdf.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            return bytes(pix.tobytes("png"))
+        except (RuntimeError, ValueError) as exc:
+            raise PDFInvalidoError(
+                f"Falha ao renderizar miniatura da página {number}.",
+                detail=f"{type(exc).__name__}: {exc}",
+            ) from exc
+
     @staticmethod
     def _convert_block(block: dict[str, Any]) -> RawBlock:
         if block.get("type") == 1:

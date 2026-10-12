@@ -4,3 +4,4 @@ customtkinter>=6.0.0
 streamlit>=1.65.0
 mutagen>=1.48.1
 num2words>=0.5.14
+Pillow>=10.0.0

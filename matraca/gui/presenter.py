@@ -22,6 +22,7 @@ from matraca.core.models import (
     PDFInfo,
     VoiceInfo,
 )
+from matraca.core.page_selection import parse_page_selection
 from matraca.core.progress import CancellationToken, ProgressEvent, Stage
 from matraca.utils.paths import resolve_collision, validate_output_path
 
@@ -54,6 +55,12 @@ class DesktopView(Protocol):
     def set_progress(self, fraction: float, message: str) -> None: ...
 
     def show_preview(self, preview: NarrationText) -> None: ...
+
+    def show_thumbnails(
+        self,
+        thumbnails: list[tuple[int, bytes]],
+        total_selected: int,
+    ) -> None: ...
 
     def show_success(self, result: JobResult) -> None: ...
 
@@ -166,6 +173,53 @@ class DesktopPresenter:
         t = threading.Thread(target=_worker, daemon=True, name="PreviewWorker")
         t.start()
 
+    def on_visualize_pages_requested(self, pages_expr: str, max_thumbnails: int = 20) -> None:
+        """Solicita a renderização de miniaturas das páginas selecionadas em background."""
+        if not self.current_pdf:
+            self.view.show_error("Selecione um arquivo PDF antes de visualizar as páginas.")
+            return
+
+        if not self.pdf_info:
+            try:
+                self.pdf_info = self.job_service.inspect_pdf(self.current_pdf)
+            except Exception as exc:
+                self.view.show_error(f"Não foi possível inspecionar o PDF: {exc}")
+                return
+
+        try:
+            page_sel = parse_page_selection(pages_expr, self.pdf_info.page_count)
+        except MatracaError as exc:
+            self.view.show_error(exc.user_message)
+            return
+        except Exception as exc:
+            self.view.show_error(f"Seleção de páginas inválida: {exc}")
+            return
+
+        total_selected = page_sel.count
+        pages_to_render = list(page_sel.pages[:max_thumbnails])
+        pdf_path = self.current_pdf
+
+        self.view.set_progress(
+            0.0, f"Renderizando miniaturas de {len(pages_to_render)} página(s)..."
+        )
+
+        def _worker() -> None:
+            try:
+                thumbs = self.job_service.render_thumbnails(
+                    pdf_path, pages_to_render, max_dimension=250
+                )
+                result_list = [(p, thumbs[p]) for p in pages_to_render if p in thumbs]
+                self.events_queue.put(UIEvent("thumbnails", (result_list, total_selected)))
+            except MatracaError as exc:
+                self.events_queue.put(UIEvent("error", exc.user_message))
+            except Exception as exc:
+                self.events_queue.put(UIEvent("error", f"Falha ao gerar miniaturas: {exc}"))
+
+        import threading
+
+        t = threading.Thread(target=_worker, daemon=True, name="ThumbnailWorker")
+        t.start()
+
     def on_start_requested(
         self,
         pages_expr: str,
@@ -258,6 +312,13 @@ class DesktopPresenter:
                 if isinstance(ev.data, NarrationText):
                     self._set_state(UIState.IDLE)
                     self.view.show_preview(ev.data)
+
+            elif ev.type == "thumbnails":
+                if isinstance(ev.data, tuple) and len(ev.data) == 2:
+                    thumbs_list, total = ev.data
+                    msg = f"Miniaturas geradas ({len(thumbs_list)} exibidas)."
+                    self.view.set_progress(1.0, msg)
+                    self.view.show_thumbnails(thumbs_list, total)
 
             elif ev.type == "job_done":
                 if isinstance(ev.data, JobResult):
