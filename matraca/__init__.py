@@ -3,4 +3,4 @@
 A importação deste pacote não tem efeitos colaterais (sem I/O, sem logging, sem rede).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
