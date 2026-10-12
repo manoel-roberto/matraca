@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matraca"
-version = "0.1.2"
+version = "0.1.3"
 description = "Matraca: transforma PDFs em áudio (MP3) para estudo de concursos"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,7 @@ dependencies = [
     "mutagen>=1.48.1",
     "num2words>=0.5.14",
     "Pillow>=10.0.0",
+    "google-cloud-texttospeech>=2.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -53,7 +54,24 @@ strict = true
 files = ["matraca"]
 
 [[tool.mypy.overrides]]
-module = ["fitz", "pymupdf", "pymupdf.*", "customtkinter", "mutagen", "mutagen.*", "num2words", "num2words.*"]
+module = [
+    "fitz",
+    "pymupdf",
+    "pymupdf.*",
+    "customtkinter",
+    "mutagen",
+    "mutagen.*",
+    "num2words",
+    "num2words.*",
+    "google",
+    "google.*",
+    "google.cloud",
+    "google.cloud.*",
+    "google.api_core",
+    "google.api_core.*",
+    "google.auth",
+    "google.auth.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -11,6 +11,7 @@ import customtkinter as ctk
 from PIL import Image
 
 from matraca.audio.edge_tts_client import EdgeTTSBackend
+from matraca.audio.google_tts_client import GoogleCloudTTSBackend
 from matraca.audio.mp3_writer import DirectMp3Joiner
 from matraca.core.audio_service import AudioService
 from matraca.core.custom_strategy import CustomStrategyConfig
@@ -21,6 +22,12 @@ from matraca.core.pdf_service import PDFService
 from matraca.extractors.registry import default_registry
 from matraca.gui.presenter import DesktopPresenter, UIState
 from matraca.pdf.pymupdf_reader import PyMuPDFReader
+from matraca.utils.credentials import (
+    find_google_credentials,
+    save_google_credentials,
+    validate_service_account_file,
+)
+from matraca.utils.logging_config import setup_logging
 
 _log = logging.getLogger(__name__)
 
@@ -174,12 +181,46 @@ class DesktopApp(ctk.CTk):
         self.btn_manage_strategies.grid(row=0, column=1, sticky="w")
 
         row += 1
-        # 4. Voz e Velocidade
+        # 4. Provedor de Voz
+        ctk.CTkLabel(container, text="Provedor TTS:", font=ctk.CTkFont(weight="bold")).grid(
+            row=row, column=0, sticky="w", pady=6
+        )
+        prov_frame = ctk.CTkFrame(container, fg_color="transparent")
+        prov_frame.grid(row=row, column=1, columnspan=2, sticky="ew", pady=6)
+        prov_frame.grid_columnconfigure(2, weight=1)
+
+        self.seg_tts_provider = ctk.CTkSegmentedButton(
+            prov_frame,
+            values=["Edge TTS (Gratuito)", "Google Cloud TTS"],
+            command=self._on_tts_provider_change,
+        )
+        self.seg_tts_provider.set("Edge TTS (Gratuito)")
+        self.seg_tts_provider.grid(row=0, column=0, sticky="w", padx=(0, 8))
+
+        self.btn_import_cred = ctk.CTkButton(
+            prov_frame,
+            text="📁 Importar credenciais.json...",
+            width=210,
+            command=self._on_import_google_credentials,
+            fg_color="gray40",
+            hover_color="gray30",
+        )
+
+        self.lbl_cred_status = ctk.CTkLabel(
+            prov_frame,
+            text="",
+            text_color="gray70",
+            font=ctk.CTkFont(size=12),
+        )
+
+        row += 1
+        # 5. Voz e Velocidade
         ctk.CTkLabel(container, text="Voz pt-BR:", font=ctk.CTkFont(weight="bold")).grid(
             row=row, column=0, sticky="w", pady=6
         )
         self.combo_voice = ctk.CTkComboBox(container, values=["pt-BR-AntonioNeural"], width=300)
         self.combo_voice.grid(row=row, column=1, sticky="w", padx=8, pady=6)
+        self._update_google_credentials_ui()
 
         row += 1
         ctk.CTkLabel(container, text="Velocidade (%):", font=ctk.CTkFont(weight="bold")).grid(
@@ -340,6 +381,88 @@ class DesktopApp(ctk.CTk):
 
     def _on_cancel_click(self) -> None:
         self.presenter.on_cancel_requested()
+
+    def _update_google_credentials_ui(self) -> None:
+        """Atualiza a visibilidade e o rótulo de status das credenciais do Google Cloud."""
+        cred_path = find_google_credentials()
+        if cred_path:
+            try:
+                summary = validate_service_account_file(cred_path)
+                self.lbl_cred_status.configure(
+                    text=f"✅ {cred_path.name} ({summary['project_id']})",
+                    text_color="#4CAF50",
+                )
+            except Exception:
+                self.lbl_cred_status.configure(
+                    text=f"⚠️ Arquivo {cred_path.name} com erro",
+                    text_color="#F44336",
+                )
+        else:
+            self.lbl_cred_status.configure(
+                text="⚠️ Nenhuma credencial importada",
+                text_color="#FF9800",
+            )
+
+        if self.seg_tts_provider.get() == "Google Cloud TTS":
+            self.btn_import_cred.grid(row=0, column=1, sticky="w", padx=4)
+            self.lbl_cred_status.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
+        else:
+            self.btn_import_cred.grid_remove()
+            self.lbl_cred_status.grid_remove()
+
+    def _on_tts_provider_change(self, value: str) -> None:
+        """Alterna o provedor de síntese de voz entre Edge TTS e Google Cloud TTS."""
+        self._update_google_credentials_ui()
+        if value == "Google Cloud TTS":
+            cred_path = find_google_credentials()
+            if not cred_path:
+                resp = messagebox.askyesno(
+                    "Credenciais do Google Cloud",
+                    "Nenhum arquivo 'credenciais.json' encontrado.\n\n"
+                    "Deseja selecionar o arquivo de credenciais da sua conta de serviço agora?",
+                )
+                if resp:
+                    self._on_import_google_credentials()
+                    return
+                # Se não importou, volta para o Edge TTS
+                self.seg_tts_provider.set("Edge TTS (Gratuito)")
+                self._update_google_credentials_ui()
+                return
+
+            backend = GoogleCloudTTSBackend(cred_path)
+            self.presenter.set_tts_backend(backend)
+        else:
+            self.presenter.set_tts_backend(EdgeTTSBackend())
+
+    def _on_import_google_credentials(self) -> None:
+        """Abre caixa de diálogo para o usuário importar o arquivo credenciais.json."""
+        path_str = filedialog.askopenfilename(
+            title="Selecione o arquivo credenciais.json da conta de serviço Google Cloud",
+            filetypes=[("Arquivos JSON", "*.json"), ("Todos os arquivos", "*.*")],
+        )
+        if not path_str:
+            return
+
+        chosen_path = Path(path_str)
+        try:
+            raw_bytes = chosen_path.read_bytes()
+            saved_path, summary = save_google_credentials(raw_bytes)
+            messagebox.showinfo(
+                "Credenciais Conectadas",
+                f"Conta de serviço conectada com sucesso!\n\n"
+                f"Projeto: {summary['project_id']}\n"
+                f"Email: {summary['client_email']}\n"
+                f"Salvo localmente em: {saved_path.name}",
+            )
+            self.seg_tts_provider.set("Google Cloud TTS")
+            self._update_google_credentials_ui()
+            backend = GoogleCloudTTSBackend(saved_path)
+            self.presenter.set_tts_backend(backend)
+        except Exception as exc:
+            messagebox.showerror(
+                "Erro nas Credenciais",
+                f"Não foi possível validar o arquivo de credenciais:\n{exc}",
+            )
 
     # --- Implementação do DesktopView Protocol ---
 
@@ -820,6 +943,8 @@ class StrategyManagerDialog(ctk.CTkToplevel):
 
 
 def main() -> None:
+    log_path = setup_logging(console=True)
+    _log.info("Iniciando Matraca Desktop (log em %s)", log_path)
     app = DesktopApp()
     app.mainloop()
 

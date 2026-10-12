@@ -15,6 +15,8 @@ from typing import Any
 
 import streamlit as st
 
+from matraca.audio.edge_tts_client import EdgeTTSBackend
+from matraca.audio.google_tts_client import GoogleCloudTTSBackend
 from matraca.core.custom_strategy import CustomStrategyConfig
 from matraca.core.exceptions import CancelamentoError, EstrategiaInvalidaError, MatracaError
 from matraca.core.job_service import JobService
@@ -26,8 +28,15 @@ from matraca.core.models import (
     PDFInfo,
 )
 from matraca.core.page_selection import parse_page_selection
+from matraca.core.ports import TTSBackend
 from matraca.core.progress import CancellationToken, ProgressEvent
 from matraca.pdf.pymupdf_reader import PyMuPDFReader
+from matraca.utils.credentials import (
+    find_google_credentials,
+    save_google_credentials,
+    validate_service_account_file,
+)
+from matraca.utils.logging_config import setup_logging
 from matraca.web.page_logic import (
     DEFAULT_MAX_UPLOAD_MB,
     UploadValidationError,
@@ -450,6 +459,7 @@ def _render_conversor(
 
 def main() -> None:
     """Ponto de entrada da aplicação Streamlit."""
+    setup_logging()
     st.set_page_config(
         page_title="Matraca",
         page_icon="🎧",
@@ -543,11 +553,69 @@ def main() -> None:
                 format_func=lambda s: strat_map.get(s, s),
             )
 
-            voices = [
-                ("pt-BR-FranciscaNeural", "Francisca (pt-BR, Feminina)"),
-                ("pt-BR-AntonioNeural", "Antonio (pt-BR, Masculino)"),
-                ("pt-BR-ThalitaNeural", "Thalita (pt-BR, Feminina)"),
-            ]
+            st.markdown("**Provedor de Voz (TTS)**")
+            tts_provider = st.radio(
+                "Serviço TTS",
+                options=["edge", "google"],
+                format_func=lambda p: (
+                    "Microsoft Edge TTS (Gratuito)"
+                    if p == "edge"
+                    else "Google Cloud Text-to-Speech (API)"
+                ),
+                label_visibility="collapsed",
+                key="web_tts_provider_choice",
+            )
+
+            tts_backend: TTSBackend
+            if tts_provider == "google":
+                cred_path = find_google_credentials()
+                if cred_path:
+                    try:
+                        summary = validate_service_account_file(cred_path)
+                        st.caption(
+                            f"✅ Credenciais ativas: `{cred_path.name}` "
+                            f"(Projeto: **{summary['project_id']}**)"
+                        )
+                    except Exception as exc:
+                        st.warning(f"Credencial com erro: {exc}")
+
+                uploaded_cred = st.file_uploader(
+                    "Importar arquivo credenciais.json",
+                    type=["json"],
+                    help="Envie a chave JSON de conta de serviço Google Cloud.",
+                    key="uploader_credenciais_json",
+                )
+                if uploaded_cred is not None:
+                    try:
+                        saved_path, summary = save_google_credentials(uploaded_cred.getvalue())
+                        st.success(
+                            f"✅ Credenciais conectadas: {saved_path.name} "
+                            f"(Projeto: {summary['project_id']})"
+                        )
+                        cred_path = saved_path
+                    except Exception as exc:
+                        st.error(f"Arquivo inválido: {exc}")
+
+                tts_backend = GoogleCloudTTSBackend(cred_path)
+                voices = [
+                    ("pt-BR-Neural2-A", "Google Neural2-A (Feminina, Alta Fidelidade)"),
+                    ("pt-BR-Neural2-B", "Google Neural2-B (Masculino, Alta Fidelidade)"),
+                    ("pt-BR-Neural2-C", "Google Neural2-C (Feminina, Alta Fidelidade)"),
+                    ("pt-BR-Wavenet-A", "Google Wavenet-A (Feminina)"),
+                    ("pt-BR-Wavenet-B", "Google Wavenet-B (Masculino)"),
+                    ("pt-BR-Chirp3-HD-Achernar", "Google Chirp3-HD Achernar (Feminina, HD)"),
+                    ("pt-BR-Chirp3-HD-Achird", "Google Chirp3-HD Achird (Masculino, HD)"),
+                ]
+            else:
+                tts_backend = EdgeTTSBackend()
+                voices = [
+                    ("pt-BR-FranciscaNeural", "Francisca (pt-BR, Feminina)"),
+                    ("pt-BR-AntonioNeural", "Antonio (pt-BR, Masculino)"),
+                    ("pt-BR-ThalitaMultilingualNeural", "Thalita (pt-BR, Feminina)"),
+                ]
+
+            job_service.audio_service.backend = tts_backend
+
             voice = st.selectbox(
                 "Voz pt-BR",
                 options=[v[0] for v in voices],

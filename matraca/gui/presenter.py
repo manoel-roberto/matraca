@@ -24,6 +24,7 @@ from matraca.core.models import (
     VoiceInfo,
 )
 from matraca.core.page_selection import parse_page_selection
+from matraca.core.ports import TTSBackend
 from matraca.core.progress import CancellationToken, ProgressEvent, Stage
 from matraca.utils.paths import resolve_collision, validate_output_path
 
@@ -94,6 +95,11 @@ class DesktopPresenter:
         self.cancel_token: CancellationToken | None = None
         self.state: UIState = UIState.IDLE
 
+    def set_tts_backend(self, backend: TTSBackend) -> None:
+        """Substitui o backend de síntese em tempo de execução e recarrega a lista de vozes."""
+        self.job_service.audio_service.backend = backend
+        self.init_voices()
+
     def init_voices(self, default_locale: str = "pt-BR") -> None:
         """Carrega lista de vozes disponíveis."""
         try:
@@ -104,23 +110,49 @@ class DesktopPresenter:
             )
             default_voice = voices_list[0].short_name if voices_list else "pt-BR-AntonioNeural"
             self.view.set_voices(voices_list, default_voice)
-        except Exception:
-            # Fallback seguro com vozes pt-BR padrão conhecidas
-            fallback = [
-                VoiceInfo(
-                    short_name="pt-BR-AntonioNeural",
-                    locale="pt-BR",
-                    gender="Male",
-                    friendly_name="Antonio (pt-BR)",
-                ),
-                VoiceInfo(
-                    short_name="pt-BR-FranciscaNeural",
-                    locale="pt-BR",
-                    gender="Female",
-                    friendly_name="Francisca (pt-BR)",
-                ),
-            ]
-            self.view.set_voices(fallback, "pt-BR-AntonioNeural")
+        except Exception as exc:
+            _log.warning("Falha ao carregar vozes dinâmicas: %s", exc)
+            from matraca.audio.google_tts_client import GoogleCloudTTSBackend
+
+            if isinstance(self.job_service.audio_service.backend, GoogleCloudTTSBackend):
+                fallback_google = [
+                    VoiceInfo(
+                        short_name="pt-BR-Neural2-A",
+                        locale="pt-BR",
+                        gender="Female",
+                        friendly_name="Google pt-BR-Neural2-A (Female)",
+                    ),
+                    VoiceInfo(
+                        short_name="pt-BR-Neural2-B",
+                        locale="pt-BR",
+                        gender="Male",
+                        friendly_name="Google pt-BR-Neural2-B (Male)",
+                    ),
+                    VoiceInfo(
+                        short_name="pt-BR-Wavenet-A",
+                        locale="pt-BR",
+                        gender="Female",
+                        friendly_name="Google pt-BR-Wavenet-A (Female)",
+                    ),
+                ]
+                self.view.set_voices(fallback_google, "pt-BR-Neural2-A")
+            else:
+                # Fallback seguro com vozes pt-BR padrão conhecidas
+                fallback = [
+                    VoiceInfo(
+                        short_name="pt-BR-AntonioNeural",
+                        locale="pt-BR",
+                        gender="Male",
+                        friendly_name="Antonio (pt-BR)",
+                    ),
+                    VoiceInfo(
+                        short_name="pt-BR-FranciscaNeural",
+                        locale="pt-BR",
+                        gender="Female",
+                        friendly_name="Francisca (pt-BR)",
+                    ),
+                ]
+                self.view.set_voices(fallback, "pt-BR-AntonioNeural")
 
     def init_strategies(self) -> None:
         """Carrega a lista de estratégias ativas e repassa à View."""

@@ -18,3 +18,9 @@ logs/
 tests/fixtures/sinteticos/
 # PDFs reais podem ser sensíveis
 tests/fixtures/reais/
+
+# Credenciais e segredos (Google Cloud / chaves de API)
+credenciais.json
+*credentials*.json
+*credenciais*.json
+*.secret.json

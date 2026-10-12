@@ -33,7 +33,11 @@ patterns = [
 ]
 
 [bancas]
-names = ["CESPE", "CEBRASPE", "FCC", "FGV", "VUNESP", "CESGRANRIO", "IBFC", "IDECAN", "QUADRIX", "FUNDATEC", "AOCP", "IADES", "CONSULPLAN", "FUNCAB"]
+names = [
+  "CESPE", "CEBRASPE", "FCC", "FGV", "VUNESP", "CESGRANRIO",
+  "IBFC", "IDECAN", "QUADRIX", "FUNDATEC", "AOCP", "IADES",
+  "CONSULPLAN", "FUNCAB"
+]
 """
 
 

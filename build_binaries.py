@@ -39,6 +39,8 @@ def main() -> None:
         "--hidden-import",
         "edge_tts",
         "--hidden-import",
+        "google.cloud.texttospeech",
+        "--hidden-import",
         "fitz",
         "--hidden-import",
         "mutagen",

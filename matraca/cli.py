@@ -7,7 +7,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-from matraca.audio.edge_tts_client import EdgeTTSBackend
+from matraca.audio.factory import create_tts_backend
 from matraca.audio.mp3_writer import DirectMp3Joiner
 from matraca.core.audio_service import AudioService
 from matraca.core.exceptions import MatracaError
@@ -17,12 +17,20 @@ from matraca.core.pdf_service import PDFService
 from matraca.doctor import run_doctor
 from matraca.extractors.registry import default_registry
 from matraca.pdf.pymupdf_reader import PyMuPDFReader
+from matraca.utils.logging_config import setup_logging
 
 
-def _build_default_job_service() -> JobService:
-    """Instancia o JobService com adaptadores de produção."""
+def _build_job_service(
+    tts_provider: str = "edge",
+    google_credentials_path: Path | None = None,
+) -> JobService:
+    """Instancia o JobService com adaptadores de produção para o provedor escolhido."""
     pdf_service = PDFService(reader_factory=PyMuPDFReader)
-    audio_service = AudioService(backend=EdgeTTSBackend(), joiner=DirectMp3Joiner())
+    backend = create_tts_backend(
+        provider=tts_provider,
+        google_credentials_path=google_credentials_path,
+    )
+    audio_service = AudioService(backend=backend, joiner=DirectMp3Joiner())
     return JobService(
         pdf_service=pdf_service,
         audio_service=audio_service,
@@ -43,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     doc_parser.add_argument(
         "--tts",
         action="store_true",
-        help="Testa conectividade real com o serviço remoto de TTS",
+        help="Testa conectividade real com os serviços remotos de TTS",
     )
 
     # Subcomando run
@@ -60,9 +68,26 @@ def main(argv: list[str] | None = None) -> int:
         help="Estratégia de extração (concursos, default). Padrão: concursos.",
     )
     run_parser.add_argument(
+        "--tts-provider",
+        choices=["edge", "google"],
+        default="edge",
+        help=(
+            "Provedor de síntese de voz: 'edge' (gratuito) ou "
+            "'google' (Google Cloud API). Padrão: edge."
+        ),
+    )
+    run_parser.add_argument(
+        "--credentials",
+        type=Path,
+        default=None,
+        help="Caminho do arquivo credenciais.json (usado para Google Cloud TTS).",
+    )
+    run_parser.add_argument(
         "--voice",
-        default="pt-BR-AntonioNeural",
-        help="Voz pt-BR do TTS. Padrão: pt-BR-AntonioNeural.",
+        default="",
+        help=(
+            "Voz pt-BR do TTS (padrão: pt-BR-AntonioNeural para Edge, pt-BR-Neural2-A para Google)."
+        ),
     )
     run_parser.add_argument(
         "--rate",
@@ -81,6 +106,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Apenas exibe prévia do texto e estatísticas sem sintetizar áudio.",
     )
+    run_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Habilita logging em nível DEBUG.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -92,12 +122,22 @@ def main(argv: list[str] | None = None) -> int:
         return run_doctor(check_tts=args.tts)
 
     if args.command == "run":
+        setup_logging(debug=getattr(args, "debug", False))
         pdf_path: Path = args.pdf
         if not pdf_path.exists():
             print(f"Erro: Arquivo PDF não encontrado: {pdf_path}", file=sys.stderr)
             return 1
 
-        service = _build_default_job_service()
+        tts_provider = args.tts_provider
+        service = _build_job_service(
+            tts_provider=tts_provider,
+            google_credentials_path=args.credentials,
+        )
+
+        # Escolhe voz padrão caso não especificada
+        voice = args.voice
+        if not voice:
+            voice = "pt-BR-Neural2-A" if tts_provider == "google" else "pt-BR-AntonioNeural"
 
         try:
             info = service.inspect_pdf(pdf_path)
@@ -120,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
 
             out_path: Path = args.out or pdf_path.with_suffix(".mp3")
             audio_config = AudioJobConfig(
-                voice=args.voice,
+                voice=voice,
                 output_path=out_path,
                 rate_percent=args.rate,
                 collision_policy=CollisionPolicy.RENAME,
