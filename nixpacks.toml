@@ -1,15 +1,19 @@
-# nixpacks.toml — configuração de build do Matraca
+# nixpacks.toml — build do Matraca (Nixpacks)
 #
 # Host: Oracle ARM64 Neoverse-N1 (Ampere Altra, ARMv8.2-A, SEM SVE).
 #
-# Problema: o PyMuPDF (pymupdf) precisa de `libstdc++.so.6`, mas o build
-# Nixpacks instala o Python via Nix, cujo loader NÃO indexa a libstdc++ do
-# Ubuntu (/usr/lib/aarch64-linux-gnu). O loader acabava carregando a lib do
-# sistema (GCC 14) e crashava com "Illegal instruction" na Neoverse-N1.
+# NOTA DE DEPLOY (importante):
+# O PyMuPDF precisa de `libstdc++.so.6`, mas o Python do Nix usa um loader
+# separado que NÃO indexa a libstdc++ do Ubuntu (/usr/lib/aarch64-linux-gnu).
+# O `LD_LIBRARY_PATH` precisa apontar para a libstdc++ do pacote Nix `gcc`
+# (/nix/store/<hash>-gcc-13.3.0-lib/lib), senão dá
+# "libstdc++.so.6: cannot open shared object file" (ou "Illegal instruction"
+# se apontar para a lib do Ubuntu).
 #
-# Solução: expor a libstdc++ do pacote Nix `gcc` via LD_LIBRARY_PATH usando
-# `nixLibs`. O Nixpacks aponta automaticamente o LD_LIBRARY_PATH do runtime
-# para as libs do pacote Nix, sem depender de hash estável do /nix/store.
+# O `nixLibs` do Nixpacks grava o path em /etc/profile.d, que NÃO é carregado
+# pelo entrypoint (mesma limitação do PATH=/opt/venv/bin). Portanto o
+# LD_LIBRARY_PATH é setado no ENV do container no Dokploy (não aqui).
+# Se o nixpkgs mudar numa atualização do Nixpacks, atualizar o <hash> no env.
 
 [phases.setup]
-nixLibs = ["gcc"]
+aptPkgs = ["ffmpeg", "libstdc++6"]
