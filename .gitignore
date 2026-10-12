@@ -11,6 +11,7 @@ build/
 dist/
 *.part
 *.mp3
+!tests/fixtures/*.mp3
 logs/
 # PDFs sintéticos são gerados por scripts/make_fixtures.py
 tests/fixtures/sinteticos/
