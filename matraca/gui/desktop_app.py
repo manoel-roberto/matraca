@@ -13,6 +13,8 @@ from PIL import Image
 from matraca.audio.edge_tts_client import EdgeTTSBackend
 from matraca.audio.mp3_writer import DirectMp3Joiner
 from matraca.core.audio_service import AudioService
+from matraca.core.custom_strategy import CustomStrategyConfig
+from matraca.core.exceptions import EstrategiaInvalidaError
 from matraca.core.job_service import JobService
 from matraca.core.models import JobResult, NarrationText, PDFInfo, VoiceInfo
 from matraca.core.pdf_service import PDFService
@@ -37,10 +39,13 @@ class DesktopApp(ctk.CTk):
 
         self.presenter = presenter or self._build_default_presenter()
         self._voices_cache: list[VoiceInfo] = []
+        self._strategies_cache: list[tuple[str, str]] = []
+        self._strategy_key_map: dict[str, str] = {}
         self._thumbnail_images: list[ctk.CTkImage] = []
 
         self._init_ui()
         self.presenter.init_voices()
+        self.presenter.init_strategies()
 
         # Inicia o polling de eventos da fila da thread trabalhadora
         self._on_tick()
@@ -147,11 +152,26 @@ class DesktopApp(ctk.CTk):
         ctk.CTkLabel(container, text="Estratégia:", font=ctk.CTkFont(weight="bold")).grid(
             row=row, column=0, sticky="w", pady=6
         )
+        strat_frame = ctk.CTkFrame(container, fg_color="transparent")
+        strat_frame.grid(row=row, column=1, columnspan=2, sticky="ew", pady=6)
+        strat_frame.grid_columnconfigure(0, weight=1)
+
         self.combo_strategy = ctk.CTkComboBox(
-            container,
-            values=["concursos (Estratégia Concursos)", "default (Padrão)"],
+            strat_frame,
+            values=["concursos (Estratégia Concursos)", "padrao (Padrão)"],
+            width=280,
         )
-        self.combo_strategy.grid(row=row, column=1, sticky="w", padx=8, pady=6)
+        self.combo_strategy.grid(row=0, column=0, sticky="w", padx=(0, 8))
+
+        self.btn_manage_strategies = ctk.CTkButton(
+            strat_frame,
+            text="⚙️ Gerenciar...",
+            width=120,
+            command=self._on_manage_strategies_click,
+            fg_color="gray40",
+            hover_color="gray30",
+        )
+        self.btn_manage_strategies.grid(row=0, column=1, sticky="w")
 
         row += 1
         # 4. Voz e Velocidade
@@ -281,10 +301,14 @@ class DesktopApp(ctk.CTk):
         return str(self.pages_entry.get()).strip()
 
     def _get_strategy_name(self) -> str:
-        val = str(self.combo_strategy.get())
-        if "default" in val:
-            return "default"
-        return "concursos"
+        val = str(self.combo_strategy.get()).strip()
+        if val in self._strategy_key_map:
+            return self._strategy_key_map[val]
+        return val.split()[0] if val else "concursos"
+
+    def _on_manage_strategies_click(self) -> None:
+        dialog = StrategyManagerDialog(self, presenter=self.presenter)
+        dialog.focus()
 
     def _on_preview_click(self) -> None:
         pages_expr = self._get_pages_expr()
@@ -328,6 +352,7 @@ class DesktopApp(ctk.CTk):
             UIState.FINALIZING,
         }
         self.btn_browse.configure(state="disabled" if is_working else "normal")
+        self.btn_manage_strategies.configure(state="disabled" if is_working else "normal")
         self.btn_visualize.configure(state="disabled" if is_working else "normal")
         self.btn_preview.configure(state="disabled" if is_working else "normal")
         self.btn_start.configure(state="disabled" if is_working else "normal")
@@ -353,6 +378,28 @@ class DesktopApp(ctk.CTk):
         if labels:
             self.combo_voice.configure(values=labels)
             self.combo_voice.set(labels[0])
+
+    def set_strategies(
+        self,
+        strategies: list[tuple[str, str]],
+        current_selected: str | None = None,
+    ) -> None:
+        self._strategies_cache = strategies
+        self._strategy_key_map = {f"{name} ({label})": name for name, label in strategies}
+        labels = [f"{name} ({label})" for name, label in strategies]
+        if labels:
+            self.combo_strategy.configure(values=labels)
+            if current_selected:
+                target_label = next(
+                    (lbl for lbl, k in self._strategy_key_map.items() if k == current_selected),
+                    None,
+                )
+                if target_label:
+                    self.combo_strategy.set(target_label)
+                else:
+                    self.combo_strategy.set(labels[0])
+            else:
+                self.combo_strategy.set(labels[0])
 
     def set_progress(self, fraction: float, message: str) -> None:
         self.progress_bar.set(max(0.0, min(1.0, fraction)))
@@ -474,6 +521,302 @@ class DesktopApp(ctk.CTk):
 
     def show_error(self, message: str) -> None:
         messagebox.showerror("Erro", message)
+
+
+class StrategyManagerDialog(ctk.CTkToplevel):
+    """Janela modal para gerenciamento de estratégias customizadas (CRUD)."""
+
+    def __init__(self, parent: ctk.CTk, presenter: DesktopPresenter) -> None:
+        super().__init__(parent)
+        self.parent = parent
+        self.presenter = presenter
+
+        self.title("Gerenciador de Estratégias Customizadas - Matraca")
+        self.geometry("840x620")
+        self.minsize(750, 550)
+
+        self.transient(parent)
+        self.grab_set()
+
+        self._editing_name: str | None = None
+        self._current_acronyms: dict[str, str] = {}
+
+        self._init_ui()
+        self._reload_strategies_list()
+        self._start_new_strategy()
+
+    def _init_ui(self) -> None:
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=2)
+        self.grid_rowconfigure(0, weight=1)
+
+        # --- Painel Esquerdo: Lista de Estratégias ---
+        left_frame = ctk.CTkFrame(self)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=12)
+        left_frame.grid_rowconfigure(1, weight=1)
+        left_frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(left_frame, text="Estratégias", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=0, column=0, sticky="w", padx=10, pady=(10, 6)
+        )
+
+        self.list_scroll = ctk.CTkScrollableFrame(left_frame)
+        self.list_scroll.grid(row=1, column=0, sticky="nsew", padx=8, pady=4)
+        self.list_scroll.grid_columnconfigure(0, weight=1)
+
+        left_actions = ctk.CTkFrame(left_frame, fg_color="transparent")
+        left_actions.grid(row=2, column=0, sticky="ew", padx=8, pady=10)
+        left_actions.grid_columnconfigure((0, 1), weight=1)
+
+        self.btn_new = ctk.CTkButton(
+            left_actions,
+            text="+ Nova",
+            command=self._start_new_strategy,
+            fg_color="green4",
+        )
+        self.btn_new.grid(row=0, column=0, padx=4, sticky="ew")
+
+        self.btn_delete = ctk.CTkButton(
+            left_actions,
+            text="🗑️ Excluir",
+            command=self._delete_strategy,
+            fg_color="red4",
+            state="disabled",
+        )
+        self.btn_delete.grid(row=0, column=1, padx=4, sticky="ew")
+
+        # --- Painel Direito: Formulário de Edição ---
+        right_frame = ctk.CTkScrollableFrame(self)
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=12)
+        right_frame.grid_columnconfigure(1, weight=1)
+
+        self.lbl_form_title = ctk.CTkLabel(
+            right_frame,
+            text="Criar Nova Estratégia",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        )
+        self.lbl_form_title.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 12))
+
+        # 1. ID / Nome interno
+        ctk.CTkLabel(right_frame, text="ID Interno:", font=ctk.CTkFont(weight="bold")).grid(
+            row=1, column=0, sticky="nw", padx=10, pady=6
+        )
+        self.entry_name = ctk.CTkEntry(right_frame, placeholder_text="ex: meu_curso_x")
+        self.entry_name.grid(row=1, column=1, sticky="ew", padx=10, pady=6)
+
+        # 2. Nome de exibição
+        ctk.CTkLabel(right_frame, text="Nome de Exibição:", font=ctk.CTkFont(weight="bold")).grid(
+            row=2, column=0, sticky="nw", padx=10, pady=6
+        )
+        self.entry_display = ctk.CTkEntry(right_frame, placeholder_text="ex: Meu Curso X")
+        self.entry_display.grid(row=2, column=1, sticky="ew", padx=10, pady=6)
+
+        # 3. Padrões de Ruído (Regex)
+        ctk.CTkLabel(
+            right_frame, text="Regexes de Ruído:\n(uma por linha)", font=ctk.CTkFont(weight="bold")
+        ).grid(row=3, column=0, sticky="nw", padx=10, pady=6)
+        self.txt_patterns = ctk.CTkTextbox(right_frame, height=110)
+        self.txt_patterns.grid(row=3, column=1, sticky="ew", padx=10, pady=6)
+
+        # 4. Siglas e Normalização Personalizada
+        ctk.CTkLabel(
+            right_frame,
+            text="Siglas e Pronúncia:",
+            font=ctk.CTkFont(weight="bold"),
+        ).grid(row=4, column=0, sticky="nw", padx=10, pady=6)
+
+        acronym_container = ctk.CTkFrame(right_frame, fg_color="transparent")
+        acronym_container.grid(row=4, column=1, sticky="ew", padx=10, pady=6)
+
+        # Subformulário para adicionar par
+        add_pair_frame = ctk.CTkFrame(acronym_container, fg_color="transparent")
+        add_pair_frame.pack(fill="x", pady=(0, 6))
+
+        self.entry_sigla = ctk.CTkEntry(
+            add_pair_frame, placeholder_text="Sigla (ex: PGE)", width=110
+        )
+        self.entry_sigla.pack(side="left", padx=(0, 4))
+
+        self.entry_pronuncia = ctk.CTkEntry(
+            add_pair_frame, placeholder_text="Pronúncia (ex: Procuradoria Geral do Estado)"
+        )
+        self.entry_pronuncia.pack(side="left", fill="x", expand=True, padx=4)
+
+        self.btn_add_pair = ctk.CTkButton(
+            add_pair_frame, text="+ Adicionar", width=90, command=self._add_acronym_pair
+        )
+        self.btn_add_pair.pack(side="left", padx=(4, 0))
+
+        # Lista de siglas cadastradas
+        self.acronyms_list_frame = ctk.CTkFrame(acronym_container)
+        self.acronyms_list_frame.pack(fill="x", pady=4)
+
+        # Botão Salvar
+        self.btn_save = ctk.CTkButton(
+            right_frame,
+            text="💾 Salvar Estratégia",
+            command=self._save_strategy,
+            fg_color="green",
+            height=36,
+        )
+        self.btn_save.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=(16, 10))
+
+    def _reload_strategies_list(self) -> None:
+        for child in self.list_scroll.winfo_children():
+            child.destroy()
+
+        custom_list = self.presenter.list_custom_strategies()
+        if not custom_list:
+            lbl = ctk.CTkLabel(
+                self.list_scroll,
+                text="Nenhuma estratégia customizada.\nClique em '+ Nova'.",
+                text_color="gray",
+            )
+            lbl.pack(pady=20)
+            return
+
+        for strat in custom_list:
+            btn = ctk.CTkButton(
+                self.list_scroll,
+                text=f"{strat.display_name}\n({strat.name})",
+                anchor="w",
+                fg_color="gray25" if strat.name != self._editing_name else "gray45",
+                hover_color="gray35",
+                command=lambda s=strat: self._load_strategy_for_edit(s),
+            )
+            btn.pack(fill="x", pady=4, padx=2)
+
+    def _start_new_strategy(self) -> None:
+        self._editing_name = None
+        self.lbl_form_title.configure(text="Criar Nova Estratégia")
+        self.entry_name.configure(state="normal")
+        self.entry_name.delete(0, "end")
+        self.entry_display.delete(0, "end")
+        self.txt_patterns.delete("1.0", "end")
+        self._current_acronyms = {}
+        self._render_acronyms()
+        self.btn_delete.configure(state="disabled")
+        self._reload_strategies_list()
+
+    def _load_strategy_for_edit(self, strat: CustomStrategyConfig) -> None:
+        self._editing_name = strat.name
+        self.lbl_form_title.configure(text=f"Editar Estratégia: {strat.display_name}")
+        self.entry_name.configure(state="normal")
+        self.entry_name.delete(0, "end")
+        self.entry_name.insert(0, strat.name)
+        self.entry_name.configure(state="disabled")
+
+        self.entry_display.delete(0, "end")
+        self.entry_display.insert(0, strat.display_name)
+
+        self.txt_patterns.delete("1.0", "end")
+        if strat.noise_patterns:
+            self.txt_patterns.insert("1.0", "\n".join(strat.noise_patterns))
+
+        self._current_acronyms = dict(strat.acronyms)
+        self._render_acronyms()
+        self.btn_delete.configure(state="normal")
+        self._reload_strategies_list()
+
+    def _add_acronym_pair(self) -> None:
+        sigla = self.entry_sigla.get().strip()
+        pron = self.entry_pronuncia.get().strip()
+        if not sigla or not pron:
+            messagebox.showwarning("Aviso", "Preencha a Sigla e a Pronúncia.")
+            return
+
+        self._current_acronyms[sigla] = pron
+        self.entry_sigla.delete(0, "end")
+        self.entry_pronuncia.delete(0, "end")
+        self._render_acronyms()
+
+    def _remove_acronym(self, sigla: str) -> None:
+        if sigla in self._current_acronyms:
+            del self._current_acronyms[sigla]
+            self._render_acronyms()
+
+    def _render_acronyms(self) -> None:
+        for child in self.acronyms_list_frame.winfo_children():
+            child.destroy()
+
+        if not self._current_acronyms:
+            lbl = ctk.CTkLabel(
+                self.acronyms_list_frame,
+                text="Nenhuma sigla cadastrada.",
+                text_color="gray",
+                font=ctk.CTkFont(size=11),
+            )
+            lbl.pack(pady=6)
+            return
+
+        for sigla, pron in self._current_acronyms.items():
+            row = ctk.CTkFrame(self.acronyms_list_frame, fg_color="transparent")
+            row.pack(fill="x", padx=4, pady=2)
+            lbl = ctk.CTkLabel(
+                row,
+                text=f"{sigla}  →  {pron}",
+                anchor="w",
+                font=ctk.CTkFont(size=12),
+            )
+            lbl.pack(side="left", fill="x", expand=True, padx=4)
+            btn_del = ctk.CTkButton(
+                row,
+                text="✕",
+                width=24,
+                height=22,
+                fg_color="red3",
+                hover_color="red4",
+                command=lambda s=sigla: self._remove_acronym(s),
+            )
+            btn_del.pack(side="right", padx=2)
+
+    def _save_strategy(self) -> None:
+        name = self._editing_name or self.entry_name.get().strip()
+        display_name = self.entry_display.get().strip()
+        patterns_raw = self.txt_patterns.get("1.0", "end").strip().splitlines()
+        noise_patterns = [p.strip() for p in patterns_raw if p.strip()]
+
+        if not name:
+            messagebox.showwarning("Aviso", "Informe o identificador interno da estratégia.")
+            return
+
+        if not display_name:
+            display_name = name
+
+        try:
+            self.presenter.save_custom_strategy(
+                name=name,
+                display_name=display_name,
+                noise_patterns=noise_patterns,
+                acronyms=self._current_acronyms,
+            )
+            messagebox.showinfo("Sucesso", f"Estratégia '{display_name}' salva com sucesso!")
+            self._editing_name = name
+            self._reload_strategies_list()
+            saved_list = self.presenter.list_custom_strategies()
+            matching = [s for s in saved_list if s.name == name]
+            if matching:
+                self._load_strategy_for_edit(matching[0])
+        except (EstrategiaInvalidaError, Exception) as exc:
+            messagebox.showerror("Erro ao Salvar", str(exc))
+
+    def _delete_strategy(self) -> None:
+        if not self._editing_name:
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirmar Exclusão",
+            f"Tem certeza que deseja excluir a estratégia '{self._editing_name}'?",
+        )
+        if not confirm:
+            return
+
+        try:
+            self.presenter.delete_custom_strategy(self._editing_name)
+            messagebox.showinfo("Sucesso", "Estratégia excluída com sucesso.")
+            self._start_new_strategy()
+        except Exception as exc:
+            messagebox.showerror("Erro ao Excluir", str(exc))
 
 
 def main() -> None:

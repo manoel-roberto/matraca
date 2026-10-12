@@ -13,6 +13,7 @@ from matraca.core.audio_service import AudioService
 from matraca.core.job_service import JobService
 from matraca.core.models import CollisionPolicy, JobResult, NarrationText, PDFInfo, VoiceInfo
 from matraca.core.pdf_service import PDFService
+from matraca.core.strategy_config_service import StrategyConfigService
 from matraca.extractors.registry import default_registry
 from matraca.gui.presenter import DesktopPresenter, UIState
 from matraca.pdf.pymupdf_reader import PyMuPDFReader
@@ -30,6 +31,8 @@ class FakeDesktopView:
         self.pdf_info: PDFInfo | None = None
         self.voices: list[VoiceInfo] = []
         self.default_voice: str = ""
+        self.strategies: list[tuple[str, str]] = []
+        self.selected_strategy: str | None = None
         self.progresses: list[tuple[float, str]] = []
         self.preview_result: NarrationText | None = None
         self.success_result: JobResult | None = None
@@ -47,6 +50,15 @@ class FakeDesktopView:
     def set_voices(self, voices: list[VoiceInfo], default_short_name: str) -> None:
         self.voices = voices
         self.default_voice = default_short_name
+
+    def set_strategies(
+        self,
+        strategies: list[tuple[str, str]],
+        current_selected: str | None = None,
+    ) -> None:
+        self.strategies = strategies
+        if current_selected is not None:
+            self.selected_strategy = current_selected
 
     def set_progress(self, fraction: float, message: str) -> None:
         self.progresses.append((fraction, message))
@@ -72,7 +84,9 @@ class FakeDesktopView:
         self.output_path = path
 
 
-def _make_presenter() -> tuple[DesktopPresenter, FakeDesktopView]:
+def _make_presenter(
+    strategy_service: StrategyConfigService | None = None,
+) -> tuple[DesktopPresenter, FakeDesktopView]:
     view = FakeDesktopView()
     pdf_service = PDFService(reader_factory=PyMuPDFReader)
     audio_service = AudioService(backend=FakeTTSBackend(), joiner=DirectMp3Joiner())
@@ -80,6 +94,7 @@ def _make_presenter() -> tuple[DesktopPresenter, FakeDesktopView]:
         pdf_service=pdf_service,
         audio_service=audio_service,
         registry=default_registry(),
+        strategy_service=strategy_service,
     )
     presenter = DesktopPresenter(view=view, job_service=job_service)
     return presenter, view
@@ -273,3 +288,44 @@ def test_presenter_visualize_pages_limita_max_thumbnails() -> None:
     assert view.thumbnails is not None
     assert len(view.thumbnails) == 2
     assert view.total_selected == 3
+
+
+def test_presenter_init_strategies() -> None:
+    """Inicialização de estratégias carrega lista na View com padrão 'concursos'."""
+    presenter, view = _make_presenter()
+    presenter.init_strategies()
+
+    assert len(view.strategies) >= 2
+    keys = [k for k, _ in view.strategies]
+    assert "concursos" in keys
+    assert "padrao" in keys
+    assert view.selected_strategy == "concursos"
+
+
+def test_presenter_custom_strategies_crud(tmp_path: Path) -> None:
+    """Presenter executa salvar e excluir de estratégia customizada atualizando View."""
+    storage_file = tmp_path / "custom.json"
+    strat_svc = StrategyConfigService(storage_path=storage_file)
+    presenter, view = _make_presenter(strategy_service=strat_svc)
+
+    presenter.init_strategies()
+    initial_count = len(view.strategies)
+
+    # 1. Salvar estratégia customizada
+    presenter.save_custom_strategy(
+        name="curso_teste_gui",
+        display_name="Curso Teste GUI",
+        noise_patterns=[r"^Página\s+\d+"],
+        acronyms={"STJ": "Superior Tribunal de Justiça"},
+    )
+
+    custom_list = presenter.list_custom_strategies()
+    assert len(custom_list) == 1
+    assert custom_list[0].name == "curso_teste_gui"
+    assert len(view.strategies) == initial_count + 1
+    assert view.selected_strategy == "curso_teste_gui"
+
+    # 2. Excluir estratégia customizada
+    presenter.delete_custom_strategy("curso_teste_gui")
+    assert len(presenter.list_custom_strategies()) == 0
+    assert len(view.strategies) == initial_count

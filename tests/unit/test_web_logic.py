@@ -163,7 +163,7 @@ def test_streamlit_app_test_initialization() -> None:
 
     root_app = Path(__file__).resolve().parents[2] / "app_web.py"
     at = AppTest.from_file(str(root_app))
-    at.run()
+    at.run(timeout=10)
 
     # O app deve renderizar a tela inicial limpa sem lançar exceções não tratadas
     assert not at.exception

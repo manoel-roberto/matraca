@@ -95,3 +95,9 @@ class CancelamentoError(MatracaError):
     """A operação foi cancelada pelo usuário."""
 
     default_message = "Operação cancelada."
+
+
+class EstrategiaInvalidaError(MatracaError):
+    """Configuração de estratégia customizada inválida ou nome reservado."""
+
+    default_message = "A configuração da estratégia customizada é inválida."

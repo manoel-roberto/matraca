@@ -6,15 +6,21 @@ O registro é uma instância (sem estado global); `default_registry()` monta o p
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 from matraca.config import ExtractionConfig
+from matraca.core.custom_strategy import CustomStrategyConfig
 from matraca.core.exceptions import MatracaError
 from matraca.core.models import ExtractionResult
 from matraca.core.ports import PDFReader, PDFTextStrategy
 from matraca.core.progress import CancellationToken, ProgressCallback
+from matraca.core.strategy_config_service import StrategyConfigService
+from matraca.extractors.custom_strategy import CustomStrategy
 from matraca.extractors.default import DefaultStrategy
 from matraca.extractors.estrategia_concursos import ConcursosStrategy
+
+_log = logging.getLogger(__name__)
 
 DEFAULT_STRATEGY_NAME = "concursos"
 
@@ -51,6 +57,22 @@ class StrategyRegistry:
             raise ValueError(f"Estratégia já registrada: {strategy.name}")
         self._items[strategy.name] = strategy
 
+    def register_or_replace(self, strategy: PDFTextStrategy) -> None:
+        """Registra uma nova estratégia ou substitui a existente pelo mesmo identificador."""
+        self._items[strategy.name] = strategy
+
+    def unregister(self, name: str) -> bool:
+        """Remove uma estratégia pelo identificador. Retorna True se existia."""
+        if name in self._items:
+            del self._items[name]
+            return True
+        return False
+
+    def load_custom_strategies(self, configs: Sequence[CustomStrategyConfig]) -> None:
+        """Carrega e registra uma lista de configurações de estratégias customizadas."""
+        for cfg in configs:
+            self.register_or_replace(CustomStrategy(cfg))
+
     def all(self) -> list[PDFTextStrategy]:
         """Todas, incluindo as marcadas como "em breve" (para exibição)."""
         return list(self._items.values())
@@ -69,11 +91,19 @@ class StrategyRegistry:
         return strategy
 
 
-def default_registry() -> StrategyRegistry:
-    """Registro padrão: Concursos, Padrão e "em breve" (Legislação seca, Livro)."""
+def default_registry(strategy_service: StrategyConfigService | None = None) -> StrategyRegistry:
+    """Registro padrão: Concursos, Padrão, customizadas do usuário e 'em breve'."""
     registry = StrategyRegistry()
     registry.register(ConcursosStrategy())
     registry.register(DefaultStrategy())
+
+    # Carrega estratégias customizadas salvas pelo usuário
+    service = strategy_service or StrategyConfigService()
+    try:
+        registry.load_custom_strategies(service.list_strategies())
+    except Exception as exc:
+        _log.warning("Falha ao carregar estratégias customizadas do disco: %s", exc)
+
     registry.register(ComingSoonStrategy("lei_seca", "Legislação seca (em breve)"))
     registry.register(ComingSoonStrategy("livro", "Livro (em breve)"))
     return registry

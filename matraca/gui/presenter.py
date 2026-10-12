@@ -12,6 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import NamedTuple, Protocol
 
+from matraca.core.custom_strategy import CustomStrategyConfig
 from matraca.core.exceptions import MatracaError
 from matraca.core.job_service import JobService
 from matraca.core.models import (
@@ -51,6 +52,12 @@ class DesktopView(Protocol):
     def set_pdf_info(self, info: PDFInfo) -> None: ...
 
     def set_voices(self, voices: list[VoiceInfo], default_short_name: str) -> None: ...
+
+    def set_strategies(
+        self,
+        strategies: list[tuple[str, str]],
+        current_selected: str | None = None,
+    ) -> None: ...
 
     def set_progress(self, fraction: float, message: str) -> None: ...
 
@@ -114,6 +121,39 @@ class DesktopPresenter:
                 ),
             ]
             self.view.set_voices(fallback, "pt-BR-AntonioNeural")
+
+    def init_strategies(self) -> None:
+        """Carrega a lista de estratégias ativas e repassa à View."""
+        strategies = self.job_service.get_selectable_strategies()
+        self.view.set_strategies(strategies, current_selected="concursos")
+
+    def list_custom_strategies(self) -> list[CustomStrategyConfig]:
+        """Devolve todas as estratégias customizadas salvas pelo usuário."""
+        return self.job_service.list_custom_strategies()
+
+    def save_custom_strategy(
+        self,
+        name: str,
+        display_name: str,
+        noise_patterns: list[str],
+        acronyms: dict[str, str],
+    ) -> None:
+        """Cria ou atualiza uma estratégia customizada e atualiza a View."""
+        cfg = CustomStrategyConfig(
+            name=name,
+            display_name=display_name,
+            noise_patterns=tuple(noise_patterns),
+            acronyms=acronyms,
+        )
+        self.job_service.save_custom_strategy(cfg)
+        strategies = self.job_service.get_selectable_strategies()
+        self.view.set_strategies(strategies, current_selected=name)
+
+    def delete_custom_strategy(self, name: str) -> None:
+        """Remove a estratégia customizada e atualiza a View."""
+        self.job_service.delete_custom_strategy(name)
+        strategies = self.job_service.get_selectable_strategies()
+        self.view.set_strategies(strategies)
 
     def on_pdf_selected(self, pdf_path: Path) -> None:
         """Chamado quando o usuário seleciona um novo arquivo PDF."""

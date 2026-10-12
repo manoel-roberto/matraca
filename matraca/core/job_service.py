@@ -13,6 +13,7 @@ from pathlib import Path
 
 from matraca.config import ExtractionConfig
 from matraca.core.audio_service import AudioService
+from matraca.core.custom_strategy import CustomStrategyConfig
 from matraca.core.exceptions import (
     CancelamentoError,
     PDFInvalidoError,
@@ -32,6 +33,7 @@ from matraca.core.progress import (
     ProgressEvent,
     Stage,
 )
+from matraca.core.strategy_config_service import StrategyConfigService
 from matraca.core.text_pipeline import TextPipelineService
 from matraca.text.normalization import NormalizationConfig
 
@@ -47,11 +49,60 @@ class JobService:
         audio_service: AudioService,
         registry: StrategyProvider,
         text_pipeline: TextPipelineService | None = None,
+        strategy_service: StrategyConfigService | None = None,
     ) -> None:
         self.pdf_service = pdf_service
         self.audio_service = audio_service
         self.registry = registry
         self.text_pipeline = text_pipeline or TextPipelineService()
+        self.strategy_service = strategy_service or StrategyConfigService()
+
+    def list_custom_strategies(self) -> list[CustomStrategyConfig]:
+        """Devolve todas as estratégias customizadas salvas pelo usuário."""
+        return self.strategy_service.list_strategies()
+
+    def get_selectable_strategies(self) -> list[tuple[str, str]]:
+        """Devolve todas as estratégias disponíveis no formato [(name, display_name)]."""
+        return [(s.name, s.display_name) for s in self.registry.selectable()]
+
+    def save_custom_strategy(self, config: CustomStrategyConfig) -> None:
+        """Salva a estratégia customizada e atualiza o registro dinamicamente."""
+        self.strategy_service.save_strategy(config)
+        if hasattr(self.registry, "load_custom_strategies"):
+            self.registry.load_custom_strategies([config])
+
+    def delete_custom_strategy(self, name: str) -> bool:
+        """Remove a estratégia customizada e desregistra no StrategyRegistry."""
+        deleted = self.strategy_service.delete_strategy(name)
+        if deleted and hasattr(self.registry, "unregister"):
+            self.registry.unregister(name)
+        return deleted
+
+    def _build_pipeline(
+        self,
+        strat: object,
+        norm_config: NormalizationConfig | None,
+    ) -> TextPipelineService:
+        """Monta o pipeline mesclando siglas da estratégia customizada na normalização."""
+        strat_acronyms: dict[str, str] = getattr(strat, "acronyms", {})
+        if not strat_acronyms:
+            return TextPipelineService(norm_config) if norm_config else self.text_pipeline
+
+        base_cfg = norm_config or self.text_pipeline.config
+        merged = {**strat_acronyms, **base_cfg.custom_acronyms}
+        cfg = NormalizationConfig(
+            enable_unicode_cleanup=base_cfg.enable_unicode_cleanup,
+            enable_line_reconstruction=base_cfg.enable_line_reconstruction,
+            enable_legal_abbreviations=base_cfg.enable_legal_abbreviations,
+            enable_laws_and_dates=base_cfg.enable_laws_and_dates,
+            enable_currency_and_percents=base_cfg.enable_currency_and_percents,
+            enable_articles_and_incisos=base_cfg.enable_articles_and_incisos,
+            enable_numbers=base_cfg.enable_numbers,
+            enable_acronyms=base_cfg.enable_acronyms,
+            enable_prosody=base_cfg.enable_prosody,
+            custom_acronyms=merged,
+        )
+        return TextPipelineService(cfg)
 
     def inspect_pdf(self, pdf_path: Path) -> PDFInfo:
         """Inspeciona o PDF e devolve metadados e total de páginas."""
@@ -116,7 +167,7 @@ class JobService:
             )
 
         emit(Stage.NORMALIZING, 0, len(extraction.pages), "Normalizando texto para narração...")
-        pipeline = TextPipelineService(norm_config) if norm_config else self.text_pipeline
+        pipeline = self._build_pipeline(strat, norm_config)
         narration = pipeline.process(extraction)
 
         emit(Stage.DONE, 1, 1, "Prévia gerada com sucesso.")
@@ -169,7 +220,7 @@ class JobService:
 
         # 3. Normalização
         emit(Stage.NORMALIZING, 0, len(extraction.pages), "Normalizando texto para fala...")
-        pipeline = TextPipelineService(norm_config) if norm_config else self.text_pipeline
+        pipeline = self._build_pipeline(strat, norm_config)
         narration = pipeline.process(extraction)
 
         if not narration.text.strip():

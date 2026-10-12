@@ -107,14 +107,27 @@ def job_tempdir(prefix: str = "matraca-") -> Iterator[Path]:
             _log.warning("Falha ao remover temporário: %s", tmp)
 
 
+def default_state_dir() -> Path:
+    """Diretório padrão de estado/configurações do usuário; `MATRACA_STATE_DIR` o substitui."""
+    override = os.environ.get("MATRACA_STATE_DIR")
+    if override:
+        return Path(override)
+    if sys.platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
+        return base / "matraca"
+    state = os.environ.get("XDG_STATE_HOME")
+    base = Path(state) if state else Path.home() / ".local" / "state"
+    return base / "matraca"
+
+
+def default_custom_strategies_path() -> Path:
+    """Caminho do arquivo JSON de estratégias customizadas do usuário."""
+    return default_state_dir() / "custom_strategies.json"
+
+
 def default_log_dir() -> Path:
     """Diretório padrão de logs (documentado no README); `MATRACA_LOG_DIR` o substitui."""
     override = os.environ.get("MATRACA_LOG_DIR")
     if override:
         return Path(override)
-    if sys.platform == "win32":
-        base = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
-        return base / "matraca" / "logs"
-    state = os.environ.get("XDG_STATE_HOME")
-    base = Path(state) if state else Path.home() / ".local" / "state"
-    return base / "matraca" / "logs"
+    return default_state_dir() / "logs"

@@ -15,7 +15,8 @@ from typing import Any
 
 import streamlit as st
 
-from matraca.core.exceptions import CancelamentoError, MatracaError
+from matraca.core.custom_strategy import CustomStrategyConfig
+from matraca.core.exceptions import CancelamentoError, EstrategiaInvalidaError, MatracaError
 from matraca.core.job_service import JobService
 from matraca.core.models import (
     AudioJobConfig,
@@ -127,128 +128,164 @@ def render_privacy_warning() -> None:
         )
 
 
-def main() -> None:
-    """Ponto de entrada da aplicação Streamlit."""
-    st.set_page_config(
-        page_title="Matraca",
-        page_icon="🎧",
-        layout="wide",
-        initial_sidebar_state="expanded",
+def render_strategy_manager(job_service: JobService) -> None:
+    """Aba do Gerenciador de Estratégias Customizadas (CRUD)."""
+    st.subheader("⚙️ Gerenciador de Estratégias Customizadas")
+    st.caption(
+        "Crie, visualize, edite e remova estratégias de normalização e remoção de ruídos "
+        "para seus materiais de estudo sem alterar o código-fonte."
     )
 
-    _init_session_state()
-    sm: WebSessionManager = st.session_state.session_manager
-    job_service: JobService = st.session_state.job_service
+    custom_strategies = job_service.list_custom_strategies()
+    options = ["+ Criar Nova Estratégia"] + [s.name for s in custom_strategies]
 
-    st.title("🎧 Matraca — Leitor de PDFs para Concursos")
-    st.caption("Transforme PDFs em áudio MP3 fluente em português do Brasil.")
+    def _format_choice(opt: str) -> str:
+        if opt == "+ Criar Nova Estratégia":
+            return "➕ Criar Nova Estratégia"
+        strat_obj = next((s for s in custom_strategies if s.name == opt), None)
+        return f"{strat_obj.display_name} ({opt})" if strat_obj else opt
 
-    render_privacy_warning()
+    selected_option = st.selectbox(
+        "Selecione uma estratégia para editar:",
+        options=options,
+        format_func=_format_choice,
+        key="selected_strat_mgr",
+    )
 
-    # Barra lateral: Upload e configurações principais
-    with st.sidebar:
-        st.header("1. Documento PDF")
-        uploaded_file = st.file_uploader(
-            "Selecione o arquivo PDF",
-            type=["pdf"],
-            help=f"Tamanho máximo permitido: {DEFAULT_MAX_UPLOAD_MB} MB.",
+    is_new = selected_option == "+ Criar Nova Estratégia"
+    current_strat = (
+        next((s for s in custom_strategies if s.name == selected_option), None)
+        if not is_new
+        else None
+    )
+
+    with st.form(key=f"form_strategy_{selected_option}"):
+        col_id, col_disp = st.columns(2)
+        with col_id:
+            strat_name = st.text_input(
+                "ID Interno (nome único):",
+                value="" if is_new or current_strat is None else current_strat.name,
+                disabled=not is_new,
+                help="Apenas letras, números e sublinhados (ex: meu_curso_x).",
+            )
+        with col_disp:
+            display_name = st.text_input(
+                "Nome de Exibição:",
+                value="" if is_new or current_strat is None else current_strat.display_name,
+                help="Nome amigável exibido nos seletores (ex: Meu Curso X).",
+            )
+
+        patterns_default = (
+            "\n".join(current_strat.noise_patterns)
+            if current_strat and current_strat.noise_patterns
+            else ""
+        )
+        noise_text = st.text_area(
+            "Padrões de Ruído (Regex — uma por linha):",
+            value=patterns_default,
+            height=120,
+            help="Expressões regulares para remover cabeçalhos, rodapés ou marcas d'água.",
         )
 
-        if uploaded_file is not None:
-            # Novo arquivo detectado
-            if st.session_state.last_upload_name != uploaded_file.name:
-                try:
-                    data = uploaded_file.getvalue()
-                    safe_name, valid_data = validate_uploaded_pdf(
-                        uploaded_file.name,
-                        data,
-                        max_mb=DEFAULT_MAX_UPLOAD_MB,
-                    )
-                    saved_path = sm.save_upload(safe_name, valid_data)
-                    info = job_service.inspect_pdf(saved_path)
-                    st.session_state.pdf_path = saved_path
-                    st.session_state.pdf_info = info
-                    st.session_state.last_upload_name = uploaded_file.name
-                    st.session_state.preview = None
-                    st.success(f"PDF carregado: {safe_name} ({info.page_count} páginas)")
-                except UploadValidationError as exc:
-                    st.error(str(exc))
-                    st.session_state.pdf_path = None
-                    st.session_state.pdf_info = None
-                    return
-                except Exception as exc:
-                    st.error(f"Falha ao processar PDF: {exc}")
-                    st.session_state.pdf_path = None
-                    st.session_state.pdf_info = None
-                    return
-        else:
-            if st.session_state.pdf_path is not None:
-                sm.cleanup()
-                st.session_state.pdf_path = None
-                st.session_state.pdf_info = None
-                st.session_state.preview = None
-                st.session_state.last_upload_name = None
+        st.markdown("**Dicionário de Siglas e Pronúncias:**")
+        st.caption(
+            "Adicione siglas e suas pronúncias expandidas para leitura correta pelo sintetizador."
+        )
 
-        pdf_info: PDFInfo | None = st.session_state.pdf_info
-        pdf_path: Path | None = st.session_state.pdf_path
+        initial_acronyms: list[dict[str, str]] = []
+        if current_strat and current_strat.acronyms:
+            for k, v in current_strat.acronyms.items():
+                initial_acronyms.append({"Sigla": k, "Pronúncia": v})
 
-        if pdf_info is not None and pdf_path is not None:
-            st.divider()
-            st.header("2. Seleção de Páginas")
-            all_pages = st.checkbox("Todas as páginas", value=True)
-            if all_pages:
-                pages_expr = f"1-{pdf_info.page_count}"
-                st.caption(f"Processando todas as {pdf_info.page_count} páginas.")
-            else:
-                pages_expr = st.text_input(
-                    "Páginas ou intervalos",
-                    value=f"1-{min(5, pdf_info.page_count)}",
-                    help="Exemplos: 1-5, 8, 11-13",
-                )
-
-            st.divider()
-            st.header("3. Extração & Voz")
-            strategy_name = st.selectbox(
-                "Estratégia de extração",
-                options=["concursos", "default"],
-                format_func=lambda s: (
-                    "Estratégia Concursos (Recomendado)"
-                    if s == "concursos"
-                    else "Padrão (Genérico)"
+        edited_data = st.data_editor(
+            initial_acronyms,
+            num_rows="dynamic",
+            column_config={
+                "Sigla": st.column_config.TextColumn("Sigla (ex: PGE)", required=True),
+                "Pronúncia": st.column_config.TextColumn(
+                    "Pronúncia (ex: Procuradoria Geral do Estado)", required=True
                 ),
+            },
+            use_container_width=True,
+            key=f"data_editor_acronyms_{selected_option}",
+        )
+
+        col_save, col_del = st.columns([3, 1])
+        with col_save:
+            btn_save = st.form_submit_button(
+                "💾 Salvar Estratégia",
+                type="primary",
+                use_container_width=True,
+            )
+        with col_del:
+            btn_del = st.form_submit_button(
+                "🗑️ Excluir Estratégia",
+                disabled=is_new,
+                use_container_width=True,
             )
 
-            voices = [
-                ("pt-BR-FranciscaNeural", "Francisca (pt-BR, Feminina)"),
-                ("pt-BR-AntonioNeural", "Antonio (pt-BR, Masculino)"),
-                ("pt-BR-ThalitaNeural", "Thalita (pt-BR, Feminina)"),
-            ]
-            voice = st.selectbox(
-                "Voz pt-BR",
-                options=[v[0] for v in voices],
-                index=0,
-                format_func=lambda v: next(desc for code, desc in voices if code == v),
+    if btn_save:
+        target_name = (strat_name or "").strip()
+        target_display = (display_name or "").strip() or target_name
+        noise_lines = [line.strip() for line in noise_text.strip().splitlines() if line.strip()]
+
+        acronyms_dict: dict[str, str] = {}
+        if isinstance(edited_data, list):
+            for row in edited_data:
+                if isinstance(row, dict):
+                    s = str(row.get("Sigla", "") or "").strip()
+                    p = str(row.get("Pronúncia", "") or "").strip()
+                    if s and p:
+                        acronyms_dict[s] = p
+        elif hasattr(edited_data, "iterrows"):
+            for _, row in edited_data.iterrows():
+                s = str(row.get("Sigla", "") or "").strip()
+                p = str(row.get("Pronúncia", "") or "").strip()
+                if s and p:
+                    acronyms_dict[s] = p
+
+        if not target_name:
+            st.error("Informe o ID interno da estratégia.")
+            return
+
+        try:
+            cfg = CustomStrategyConfig(
+                name=target_name,
+                display_name=target_display,
+                noise_patterns=tuple(noise_lines),
+                acronyms=acronyms_dict,
             )
+            job_service.save_custom_strategy(cfg)
+            st.toast(f"Estratégia '{target_display}' salva com sucesso!", icon="✅")
+            st.success(f"Estratégia '{target_display}' salva com sucesso!")
+            time.sleep(0.5)
+            st.rerun()
+        except (EstrategiaInvalidaError, Exception) as exc:
+            st.error(f"Erro ao salvar estratégia: {exc}")
 
-            speed_pct = st.slider(
-                "Velocidade da fala",
-                min_value=-50,
-                max_value=100,
-                value=0,
-                step=5,
-                format="%d%%",
-                help="Ajuste fino da velocidade (-50% mais lento até +100% mais rápido).",
-            )
+    if btn_del and not is_new and current_strat:
+        try:
+            job_service.delete_custom_strategy(current_strat.name)
+            st.toast(f"Estratégia '{current_strat.name}' excluída!", icon="🗑️")
+            st.success(f"Estratégia '{current_strat.name}' excluída com sucesso!")
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Erro ao excluir estratégia: {exc}")
 
-            suggested_out = f"{pdf_path.stem}.mp3"
-            output_name = st.text_input("Nome do arquivo MP3", value=suggested_out)
 
-    # Painel principal
-    if pdf_info is None or pdf_path is None:
-        st.info("👈 Por favor, selecione um arquivo PDF na barra lateral para começar.")
-        return
-
-    # Validação prévia da seleção de páginas
+def _render_conversor(
+    job_service: JobService,
+    sm: WebSessionManager,
+    pdf_info: PDFInfo,
+    pdf_path: Path,
+    pages_expr: str,
+    strategy_name: str,
+    voice: str,
+    speed_pct: int,
+    output_name: str,
+) -> None:
+    """Renderiza os controles e resultados da conversão de PDF para áudio."""
     try:
         page_sel = parse_page_selection(pages_expr, pdf_info.page_count)
         valid_pages = True
@@ -256,7 +293,6 @@ def main() -> None:
         st.error(f"Seleção de páginas inválida: {exc}")
         valid_pages = False
 
-    # Visualizador Dinâmico de Páginas Selecionadas (Dashboard Interativo)
     if valid_pages:
         render_pages_thumbnail_viewer(pdf_path, list(page_sel.pages), max_thumbnails=20)
 
@@ -273,7 +309,6 @@ def main() -> None:
             disabled=not valid_pages,
         )
 
-    # Ação de prévia
     if preview_btn and valid_pages:
         with st.spinner("Extraindo e normalizando texto das páginas selecionadas..."):
             try:
@@ -286,7 +321,6 @@ def main() -> None:
             except Exception as exc:
                 st.error(f"Erro ao gerar prévia: {exc}")
 
-    # Exibição da prévia
     current_preview: NarrationText | None = st.session_state.preview
     if current_preview is not None:
         st.subheader("Prévia do Conteúdo")
@@ -325,7 +359,6 @@ def main() -> None:
                 for w in current_preview.warnings:
                     st.write(f"- {w}")
 
-    # Ação de geração de áudio com acompanhamento e polling
     if generate_btn and valid_pages:
         st.subheader("Progresso da Síntese")
         prog_bar = st.progress(0.0)
@@ -370,7 +403,6 @@ def main() -> None:
                 cancel_token.cancel()
                 status_box.warning("Cancelando processo...")
 
-        # Loop de sincronização com a thread de trabalho
         while thread.is_alive() or not events.empty():
             while not events.empty():
                 evt = events.get_nowait()
@@ -401,7 +433,6 @@ def main() -> None:
                 format_duration(res.estimated_duration_seconds),
             )
 
-            # Reprodução e download
             try:
                 mp3_data = res.output_path.read_bytes()
                 st.audio(mp3_data, format="audio/mp3")
@@ -415,6 +446,151 @@ def main() -> None:
                 )
             except Exception as read_exc:
                 st.error(f"Não foi possível carregar o arquivo para download: {read_exc}")
+
+
+def main() -> None:
+    """Ponto de entrada da aplicação Streamlit."""
+    st.set_page_config(
+        page_title="Matraca",
+        page_icon="🎧",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+
+    _init_session_state()
+    sm: WebSessionManager = st.session_state.session_manager
+    job_service: JobService = st.session_state.job_service
+
+    st.title("🎧 Matraca — Leitor de PDFs para Concursos")
+    st.caption("Transforme PDFs em áudio MP3 fluente em português do Brasil.")
+
+    render_privacy_warning()
+
+    # Barra lateral: Upload e configurações principais
+    with st.sidebar:
+        st.header("1. Documento PDF")
+        uploaded_file = st.file_uploader(
+            "Selecione o arquivo PDF",
+            type=["pdf"],
+            help=f"Tamanho máximo permitido: {DEFAULT_MAX_UPLOAD_MB} MB.",
+        )
+
+        if uploaded_file is not None:
+            if st.session_state.last_upload_name != uploaded_file.name:
+                try:
+                    data = uploaded_file.getvalue()
+                    safe_name, valid_data = validate_uploaded_pdf(
+                        uploaded_file.name,
+                        data,
+                        max_mb=DEFAULT_MAX_UPLOAD_MB,
+                    )
+                    saved_path = sm.save_upload(safe_name, valid_data)
+                    info = job_service.inspect_pdf(saved_path)
+                    st.session_state.pdf_path = saved_path
+                    st.session_state.pdf_info = info
+                    st.session_state.last_upload_name = uploaded_file.name
+                    st.session_state.preview = None
+                    st.success(f"PDF carregado: {safe_name} ({info.page_count} páginas)")
+                except UploadValidationError as exc:
+                    st.error(str(exc))
+                    st.session_state.pdf_path = None
+                    st.session_state.pdf_info = None
+                except Exception as exc:
+                    st.error(f"Falha ao processar PDF: {exc}")
+                    st.session_state.pdf_path = None
+                    st.session_state.pdf_info = None
+        else:
+            if st.session_state.pdf_path is not None:
+                sm.cleanup()
+                st.session_state.pdf_path = None
+                st.session_state.pdf_info = None
+                st.session_state.preview = None
+                st.session_state.last_upload_name = None
+
+        pdf_info: PDFInfo | None = st.session_state.pdf_info
+        pdf_path: Path | None = st.session_state.pdf_path
+
+        pages_expr = ""
+        strategy_name = "concursos"
+        voice = "pt-BR-FranciscaNeural"
+        speed_pct = 0
+        output_name = "audio.mp3"
+
+        if pdf_info is not None and pdf_path is not None:
+            st.divider()
+            st.header("2. Seleção de Páginas")
+            all_pages = st.checkbox("Todas as páginas", value=True)
+            if all_pages:
+                pages_expr = f"1-{pdf_info.page_count}"
+                st.caption(f"Processando todas as {pdf_info.page_count} páginas.")
+            else:
+                pages_expr = st.text_input(
+                    "Páginas ou intervalos",
+                    value=f"1-{min(5, pdf_info.page_count)}",
+                    help="Exemplos: 1-5, 8, 11-13",
+                )
+
+            st.divider()
+            st.header("3. Extração & Voz")
+            available_strategies = job_service.get_selectable_strategies()
+            strat_map = dict(available_strategies)
+            strat_options = [k for k, _ in available_strategies]
+            def_idx = strat_options.index("concursos") if "concursos" in strat_options else 0
+            strategy_name = st.selectbox(
+                "Estratégia de extração",
+                options=strat_options,
+                index=def_idx,
+                format_func=lambda s: strat_map.get(s, s),
+            )
+
+            voices = [
+                ("pt-BR-FranciscaNeural", "Francisca (pt-BR, Feminina)"),
+                ("pt-BR-AntonioNeural", "Antonio (pt-BR, Masculino)"),
+                ("pt-BR-ThalitaNeural", "Thalita (pt-BR, Feminina)"),
+            ]
+            voice = st.selectbox(
+                "Voz pt-BR",
+                options=[v[0] for v in voices],
+                index=0,
+                format_func=lambda v: next(desc for code, desc in voices if code == v),
+            )
+
+            speed_pct = st.slider(
+                "Velocidade da fala",
+                min_value=-50,
+                max_value=100,
+                value=0,
+                step=5,
+                format="%d%%",
+                help="Ajuste fino da velocidade (-50% mais lento até +100% mais rápido).",
+            )
+
+            suggested_out = f"{pdf_path.stem}.mp3"
+            output_name = st.text_input("Nome do arquivo MP3", value=suggested_out)
+
+    # Painel principal organizado em abas
+    tab_conversor, tab_estrategias = st.tabs(
+        ["🎧 Conversor de PDF", "⚙️ Gerenciador de Estratégias"]
+    )
+
+    with tab_estrategias:
+        render_strategy_manager(job_service)
+
+    with tab_conversor:
+        if pdf_info is None or pdf_path is None:
+            st.info("👈 Por favor, selecione um arquivo PDF na barra lateral para começar.")
+        else:
+            _render_conversor(
+                job_service=job_service,
+                sm=sm,
+                pdf_info=pdf_info,
+                pdf_path=pdf_path,
+                pages_expr=pages_expr,
+                strategy_name=strategy_name,
+                voice=voice,
+                speed_pct=speed_pct,
+                output_name=output_name,
+            )
 
 
 if __name__ == "__main__":

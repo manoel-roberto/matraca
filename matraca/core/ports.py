@@ -79,6 +79,10 @@ class StrategyProvider(Protocol):
 
     def get(self, name: str) -> PDFTextStrategy: ...
 
+    def selectable(self) -> list[PDFTextStrategy]: ...
+
+    def all(self) -> list[PDFTextStrategy]: ...
+
 
 class TTSBackend(Protocol):
     """Backend de síntese de fala injetável."""
