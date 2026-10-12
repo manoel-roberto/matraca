@@ -1,0 +1,15 @@
+# nixpacks.toml — configuração de build do Matraca
+#
+# Host: Oracle ARM64 Neoverse-N1 (Ampere Altra, ARMv8.2-A, SEM SVE).
+#
+# Problema: o PyMuPDF (pymupdf) precisa de `libstdc++.so.6`, mas o build
+# Nixpacks instala o Python via Nix, cujo loader NÃO indexa a libstdc++ do
+# Ubuntu (/usr/lib/aarch64-linux-gnu). O loader acabava carregando a lib do
+# sistema (GCC 14) e crashava com "Illegal instruction" na Neoverse-N1.
+#
+# Solução: expor a libstdc++ do pacote Nix `gcc` via LD_LIBRARY_PATH usando
+# `nixLibs`. O Nixpacks aponta automaticamente o LD_LIBRARY_PATH do runtime
+# para as libs do pacote Nix, sem depender de hash estável do /nix/store.
+
+[phases.setup]
+nixLibs = ["gcc"]
